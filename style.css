@@ -141,6 +141,14 @@ main {
   box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3) !important;
 }
 
+#notificationBtn {
+  background: linear-gradient(45deg, #17a2b8, #6f42c1) !important;
+}
+
+#notificationBtn:hover {
+  box-shadow: 0 8px 25px rgba(23, 162, 184, 0.3) !important;
+}
+
 #quotesContainer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -309,6 +317,40 @@ main {
   color: #555;
 }
 
+.notification-info {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 30px;
+  margin-top: 40px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-right: 5px solid #17a2b8;
+}
+
+.notification-info h3 {
+  margin-top: 0;
+  color: #17a2b8;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.notification-info p {
+  color: #555;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.notification-info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.notification-info li {
+  padding: 8px 0;
+  color: #333;
+  font-weight: 500;
+}
+
 .welcome-message {
   text-align: center;
   font-size: 1.2rem;
@@ -331,6 +373,8 @@ main {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   transition: all 0.3s ease;
+  max-width: 90%;
+  text-align: center;
 }
 
 .notification.hidden {

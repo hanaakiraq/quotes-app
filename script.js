@@ -5,6 +5,7 @@ class QuotesApp {
     this.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
     this.currentCategory = 'all';
     this.currentQuotes = [];
+    this.notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
     this.init();
   }
 
@@ -12,6 +13,7 @@ class QuotesApp {
     await this.loadQuotes();
     this.setupEventListeners();
     this.displayQuotes();
+    await this.initializeNotifications();
   }
 
   async loadQuotes() {
@@ -26,6 +28,108 @@ class QuotesApp {
       } catch (error) {
         console.error(`خطأ في تحميل ${category}:`, error);
         this.quotes[category] = [];
+      }
+    }
+  }
+
+  async initializeNotifications() {
+    // تسجيل Service Worker
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/service-worker.js');
+        console.log('Service Worker مسجل بنجاح:', registration);
+        
+        // إضافة زر التحكم في الإشعارات
+        this.addNotificationControls();
+        
+        // بدء الإشعارات إذا كانت مفعلة
+        if (this.notificationsEnabled) {
+          await this.enableNotifications();
+        }
+      } catch (error) {
+        console.error('خطأ في تسجيل Service Worker:', error);
+      }
+    }
+  }
+
+  addNotificationControls() {
+    const actionButtons = document.querySelector('.action-buttons');
+    
+    // إضافة زر تفعيل/إلغاء الإشعارات
+    const notificationBtn = document.createElement('button');
+    notificationBtn.id = 'notificationBtn';
+    notificationBtn.innerHTML = this.notificationsEnabled ? 'إيقاف الإشعارات 🔕' : 'تفعيل الإشعارات 🔔';
+    notificationBtn.addEventListener('click', () => this.toggleNotifications());
+    
+    actionButtons.appendChild(notificationBtn);
+  }
+
+  async toggleNotifications() {
+    if (this.notificationsEnabled) {
+      await this.disableNotifications();
+    } else {
+      await this.enableNotifications();
+    }
+  }
+
+  async enableNotifications() {
+    try {
+      // طلب إذن الإشعارات
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        this.notificationsEnabled = true;
+        localStorage.setItem('notificationsEnabled', 'true');
+        
+        // إرسال رسالة للـ Service Worker لبدء جدولة الإشعارات
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SCHEDULE_DAILY_NOTIFICATION'
+          });
+        }
+        
+        // تحديث النص
+        document.getElementById('notificationBtn').innerHTML = 'إيقاف الإشعارات 🔕';
+        
+        this.showNotification('تم تفعيل الإشعارات اليومية! ستصلك حكمة جديدة كل يوم في الساعة 9 صباحاً 🌅');
+        
+        // إرسال إشعار تجريبي
+        this.sendTestNotification();
+      } else {
+        this.showNotification('يرجى السماح بالإشعارات لتفعيل هذه الميزة', 'error');
+      }
+    } catch (error) {
+      console.error('خطأ في تفعيل الإشعارات:', error);
+      this.showNotification('خطأ في تفعيل الإشعارات', 'error');
+    }
+  }
+
+  async disableNotifications() {
+    this.notificationsEnabled = false;
+    localStorage.setItem('notificationsEnabled', 'false');
+    
+    // تحديث النص
+    document.getElementById('notificationBtn').innerHTML = 'تفعيل الإشعارات 🔔';
+    
+    this.showNotification('تم إيقاف الإشعارات اليومية');
+  }
+
+  async sendTestNotification() {
+    if ('serviceWorker' in navigator && 'Notification' in window) {
+      const allQuotes = Object.values(this.quotes).flat();
+      if (allQuotes.length > 0) {
+        const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
+        
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification('🌟 مرحباً! هذا إشعار تجريبي', {
+          body: randomQuote,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: 'test-quote',
+          requireInteraction: false,
+          silent: false,
+          vibrate: [200, 100, 200]
+        });
       }
     }
   }
