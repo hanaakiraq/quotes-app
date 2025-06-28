@@ -151,7 +151,7 @@ class QuotesApp {
       knowledge: 'العلم',
       motivation: 'التحفيز',
       life: 'الحياة',
-      custom: 'مقولاتي الخاصة'
+      custom: 'غرر الحكم'
     };
     return names[category] || 'غير محدد';
   }
