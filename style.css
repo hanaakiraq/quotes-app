@@ -1,34 +1,350 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   direction: rtl;
-  background: #f9f9f9;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   margin: 0;
   padding: 0;
+  min-height: 100vh;
+  color: #333;
 }
 
 header {
-  background-color: #007bff;
-  color: white;
-  padding: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  color: #333;
+  padding: 20px;
   text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-select {
-  margin-top: 10px;
-  padding: 8px;
+header h1 {
+  margin: 0 0 20px 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+select, input, button {
+  padding: 12px 16px;
   font-size: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 25px;
+  outline: none;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+select:focus, input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-container {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+#searchInput {
+  min-width: 200px;
+  border-radius: 25px 0 0 25px;
+}
+
+#searchBtn {
+  border-radius: 0 25px 25px 0;
+  background: #667eea;
+  color: white;
+  border: 2px solid #667eea;
+  cursor: pointer;
+  padding: 12px 16px;
+}
+
+#searchBtn:hover {
+  background: #5a6fd8;
+  transform: translateY(-2px);
 }
 
 main {
-  padding: 20px;
+  padding: 30px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.stats span {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stats button {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.stats button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+#quotesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
 }
 
 .quote-card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  margin-bottom: 15px;
-  padding: 15px;
-  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  line-height: 1.8;
   font-size: 18px;
+  position: relative;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quote-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.quote-card::before {
+  content: '"';
+  font-size: 4rem;
+  color: #667eea;
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  opacity: 0.3;
+  font-family: serif;
+}
+
+.quote-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: flex-end;
+}
+
+.quote-actions button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.quote-actions button:hover {
+  background: rgba(102, 126, 234, 0.1);
+  transform: scale(1.1);
+}
+
+.favorite {
+  color: #ffd700 !important;
+}
+
+.add-quote-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 30px;
+  margin-top: 40px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.add-quote-section h3 {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+.add-quote-form {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.add-quote-form select,
+.add-quote-form textarea {
+  flex: 1;
+  min-width: 200px;
+}
+
+.add-quote-form textarea {
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+#addQuoteBtn {
+  background: linear-gradient(45deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#addQuoteBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+.welcome-message {
+  text-align: center;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28a745;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 25px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.notification.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-100px);
+  pointer-events: none;
+}
+
+.notification.error {
+  background: #dc3545;
+}
+
+.category-badge {
+  display: inline-block;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 2rem;
+  }
+  
+  .controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  #searchInput {
+    min-width: 250px;
+  }
+  
+  #quotesContainer {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .add-quote-form {
+    flex-direction: column;
+  }
+  
+  .quote-card {
+    font-size: 16px;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  main {
+    padding: 20px 15px;
+  }
+  
+  header {
+    padding: 15px;
+  }
+  
+  .quote-card {
+    padding: 15px;
+  }
+  
+  .add-quote-section {
+    padding: 20px;
+  }
 }

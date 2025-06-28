@@ -5,21 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>مقولات وحكم</title>
   <link rel="stylesheet" href="style.css"/>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007bff">
+  <link rel="icon" type="image/png" href="icon-192.png">
 </head>
 <body>
   <header>
-    <h1>مقولات وحكم</h1>
-    <select id="categorySelect">
-      <option value="all">اختر بابًا</option>
-      <option value="wisdom">الحكمة</option>
-      <option value="success">النجاح</option>
-      <option value="friendship">الصداقة</option>
-    </select>
+    <h1>📚 مقولات وحكم</h1>
+    <div class="controls">
+      <select id="categorySelect">
+        <option value="all">جميع الأبواب</option>
+        <option value="wisdom">الحكمة</option>
+        <option value="success">النجاح</option>
+        <option value="friendship">الصداقة</option>
+        <option value="love">الحب</option>
+        <option value="patience">الصبر</option>
+        <option value="knowledge">العلم</option>
+      </select>
+      
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="ابحث في المقولات...">
+        <button id="searchBtn">🔍</button>
+      </div>
+    </div>
   </header>
 
-  <main id="quotesContainer">
-    <p>يرجى اختيار باب من القائمة لعرض المقولات.</p>
+  <main>
+    <div class="stats">
+      <span id="quotesCount">0 مقولة</span>
+      <button id="randomQuoteBtn">مقولة عشوائية 🎲</button>
+      <button id="favoriteBtn">المفضلة ⭐</button>
+    </div>
+
+    <div id="quotesContainer">
+      <p class="welcome-message">اختر باباً من القائمة أو ابحث في جميع المقولات</p>
+    </div>
+
+    <div id="addQuoteSection" class="add-quote-section">
+      <h3>إضافة مقولة جديدة</h3>
+      <div class="add-quote-form">
+        <select id="newQuoteCategory">
+          <option value="wisdom">الحكمة</option>
+          <option value="success">النجاح</option>
+          <option value="friendship">الصداقة</option>
+          <option value="love">الحب</option>
+          <option value="patience">الصبر</option>
+          <option value="knowledge">العلم</option>
+        </select>
+        <textarea id="newQuoteText" placeholder="اكتب المقولة هنا..." rows="3"></textarea>
+        <button id="addQuoteBtn">إضافة المقولة ➕</button>
+      </div>
+    </div>
   </main>
+
+  <div id="notification" class="notification hidden"></div>
 
   <script src="script.js"></script>
 </body>
