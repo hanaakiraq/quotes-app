@@ -19,6 +19,7 @@ class QuotesApp {
     this.quotesCount = document.getElementById("quotesCount");
     this.randomQuoteBtn = document.getElementById("randomQuoteBtn");
     this.favoriteBtn = document.getElementById("favoriteBtn");
+    this.exportBtn = document.getElementById("exportBtn");
     this.newQuoteCategory = document.getElementById("newQuoteCategory");
     this.newQuoteText = document.getElementById("newQuoteText");
     this.addQuoteBtn = document.getElementById("addQuoteBtn");
@@ -38,6 +39,7 @@ class QuotesApp {
 
     this.randomQuoteBtn.addEventListener("click", () => this.showRandomQuote());
     this.favoriteBtn.addEventListener("click", () => this.showFavorites());
+    this.exportBtn.addEventListener("click", () => this.exportFavorites());
     this.addQuoteBtn.addEventListener("click", () => this.addCustomQuote());
 
     // Real-time search
@@ -51,7 +53,7 @@ class QuotesApp {
   }
 
   async loadAllQuotes() {
-    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge'];
+    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life'];
     
     try {
       for (const category of categories) {
@@ -66,6 +68,7 @@ class QuotesApp {
       }
       
       this.showNotification("تم تحميل جميع المقولات بنجاح! 🎉");
+      this.updateTotalCount();
     } catch (error) {
       console.error('Error loading quotes:', error);
       this.showNotification("حدث خطأ في تحميل المقولات", "error");
@@ -99,8 +102,14 @@ class QuotesApp {
       const card = document.createElement("div");
       card.className = "quote-card";
       
-      const categoryBadge = category && category !== 'all' ? 
-        `<div class="category-badge">${this.getCategoryName(category)}</div>` : '';
+      // Determine category for badge
+      let quoteCat = category;
+      if (category === 'all' || !category) {
+        quoteCat = this.findQuoteCategory(quote);
+      }
+      
+      const categoryBadge = quoteCat && quoteCat !== 'all' ? 
+        `<div class="category-badge">${this.getCategoryName(quoteCat)}</div>` : '';
       
       const isFavorite = this.favorites.includes(quote);
       
@@ -123,6 +132,15 @@ class QuotesApp {
       
       this.quotesContainer.appendChild(card);
     });
+  }
+
+  findQuoteCategory(quote) {
+    for (const [category, quotes] of Object.entries(this.allQuotes)) {
+      if (quotes.includes(quote)) {
+        return category;
+      }
+    }
+    return null;
   }
 
   searchQuotes() {
@@ -170,6 +188,27 @@ class QuotesApp {
     this.displayQuotes(this.favorites);
     this.updateQuotesCount();
     this.showNotification(`عرض ${this.favorites.length} مقولة مفضلة ⭐`);
+  }
+
+  exportFavorites() {
+    if (this.favorites.length === 0) {
+      this.showNotification("لا توجد مقولات مفضلة للتصدير", "error");
+      return;
+    }
+
+    const favoritesText = this.favorites.map((quote, index) => `${index + 1}. ${quote}`).join('\n\n');
+    const blob = new Blob([favoritesText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'مقولاتي_المفضلة.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    this.showNotification("تم تصدير المقولات المفضلة بنجاح! 📁");
   }
 
   toggleFavorite(quote, button) {
@@ -241,11 +280,18 @@ class QuotesApp {
     if (this.currentCategory === category || this.currentCategory === 'all') {
       this.loadQuotes(this.currentCategory);
     }
+    
+    this.updateTotalCount();
   }
 
   updateQuotesCount() {
     const count = this.currentQuotes.length;
     this.quotesCount.textContent = `${count} مقولة`;
+  }
+
+  updateTotalCount() {
+    const totalQuotes = Object.values(this.allQuotes).flat().length;
+    console.log(`إجمالي المقولات: ${totalQuotes}`);
   }
 
   getCategoryName(category) {
@@ -255,7 +301,9 @@ class QuotesApp {
       friendship: 'الصداقة',
       love: 'الحب',
       patience: 'الصبر',
-      knowledge: 'العلم'
+      knowledge: 'العلم',
+      motivation: 'التحفيز',
+      life: 'الحياة'
     };
     return names[category] || category;
   }

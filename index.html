@@ -21,6 +21,8 @@
         <option value="love">الحب</option>
         <option value="patience">الصبر</option>
         <option value="knowledge">العلم</option>
+        <option value="motivation">التحفيز</option>
+        <option value="life">الحياة</option>
       </select>
       
       <div class="search-container">
@@ -33,8 +35,11 @@
   <main>
     <div class="stats">
       <span id="quotesCount">0 مقولة</span>
-      <button id="randomQuoteBtn">مقولة عشوائية 🎲</button>
-      <button id="favoriteBtn">المفضلة ⭐</button>
+      <div class="action-buttons">
+        <button id="randomQuoteBtn">مقولة عشوائية 🎲</button>
+        <button id="favoriteBtn">المفضلة ⭐</button>
+        <button id="exportBtn">تصدير المفضلة 📤</button>
+      </div>
     </div>
 
     <div id="quotesContainer">
@@ -51,6 +56,8 @@
           <option value="love">الحب</option>
           <option value="patience">الصبر</option>
           <option value="knowledge">العلم</option>
+          <option value="motivation">التحفيز</option>
+          <option value="life">الحياة</option>
         </select>
         <textarea id="newQuoteText" placeholder="اكتب المقولة هنا..." rows="3"></textarea>
         <button id="addQuoteBtn">إضافة المقولة ➕</button>

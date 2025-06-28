@@ -105,6 +105,12 @@ main {
   color: #333;
 }
 
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .stats button {
   background: linear-gradient(45deg, #667eea, #764ba2);
   color: white;
@@ -117,6 +123,14 @@ main {
 .stats button:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+#exportBtn {
+  background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+#exportBtn:hover {
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3) !important;
 }
 
 #quotesContainer {
@@ -153,6 +167,11 @@ main {
   right: 20px;
   opacity: 0.3;
   font-family: serif;
+}
+
+.quote-text {
+  margin-bottom: 15px;
+  font-weight: 500;
 }
 
 .quote-actions {
@@ -321,6 +340,10 @@ main {
     text-align: center;
   }
   
+  .action-buttons {
+    justify-content: center;
+  }
+  
   .add-quote-form {
     flex-direction: column;
   }
@@ -346,5 +369,13 @@ main {
   
   .add-quote-section {
     padding: 20px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .stats button {
+    width: 100%;
   }
 }

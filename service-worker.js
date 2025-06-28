@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quotes-app-v1';
+const CACHE_NAME = 'quotes-app-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,7 +10,9 @@ const urlsToCache = [
   '/data/friendship.json',
   '/data/love.json',
   '/data/patience.json',
-  '/data/knowledge.json'
+  '/data/knowledge.json',
+  '/data/motivation.json',
+  '/data/life.json'
 ];
 
 self.addEventListener('install', event => {
