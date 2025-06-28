@@ -47,8 +47,14 @@ class QuotesApp {
           await this.enableNotifications();
         }
       } catch (error) {
-        console.error('خطأ في تسجيل Service Worker:', error);
+        console.warn('Service Worker غير مدعوم في هذه البيئة:', error.message);
+        // إضافة زر التحكم في الإشعارات حتى لو لم يكن Service Worker مدعوماً
+        this.addNotificationControls();
       }
+    } else {
+      console.warn('Service Worker غير مدعوم في هذا المتصفح');
+      // إضافة زر التحكم في الإشعارات حتى لو لم يكن Service Worker مدعوماً
+      this.addNotificationControls();
     }
   }
 
@@ -120,16 +126,27 @@ class QuotesApp {
       if (allQuotes.length > 0) {
         const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
         
-        const registration = await navigator.serviceWorker.ready;
-        registration.showNotification('🌟 مرحباً! هذا إشعار تجريبي', {
-          body: randomQuote,
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
-          tag: 'test-quote',
-          requireInteraction: false,
-          silent: false,
-          vibrate: [200, 100, 200]
-        });
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          registration.showNotification('🌟 مرحباً! هذا إشعار تجريبي', {
+            body: randomQuote,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'test-quote',
+            requireInteraction: false,
+            silent: false,
+            vibrate: [200, 100, 200]
+          });
+        } catch (error) {
+          console.warn('لا يمكن إرسال الإشعار التجريبي:', error.message);
+          // إرسال إشعار بسيط بدلاً من ذلك
+          if (Notification.permission === 'granted') {
+            new Notification('🌟 مرحباً! هذا إشعار تجريبي', {
+              body: randomQuote,
+              icon: '/icon-192.png'
+            });
+          }
+        }
       }
     }
   }
