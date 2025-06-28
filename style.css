@@ -133,6 +133,14 @@ main {
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3) !important;
 }
 
+#importBtn {
+  background: linear-gradient(45deg, #fd7e14, #e63946) !important;
+}
+
+#importBtn:hover {
+  box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3) !important;
+}
+
 #quotesContainer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -249,6 +257,58 @@ main {
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
 }
 
+.import-form {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.import-form button {
+  background: linear-gradient(45deg, #fd7e14, #e63946);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.import-form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3);
+}
+
+.import-form button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.import-help {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 15px;
+  border-radius: 10px;
+  border-right: 4px solid #667eea;
+}
+
+.import-help p {
+  margin: 0 0 10px 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.import-help ul {
+  margin: 0;
+  padding-right: 20px;
+}
+
+.import-help li {
+  margin-bottom: 5px;
+  color: #555;
+}
+
 .welcome-message {
   text-align: center;
   font-size: 1.2rem;
@@ -345,6 +405,10 @@ main {
   }
   
   .add-quote-form {
+    flex-direction: column;
+  }
+  
+  .import-form {
     flex-direction: column;
   }
   

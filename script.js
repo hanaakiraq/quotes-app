@@ -20,10 +20,15 @@ class QuotesApp {
     this.randomQuoteBtn = document.getElementById("randomQuoteBtn");
     this.favoriteBtn = document.getElementById("favoriteBtn");
     this.exportBtn = document.getElementById("exportBtn");
+    this.importBtn = document.getElementById("importBtn");
     this.newQuoteCategory = document.getElementById("newQuoteCategory");
     this.newQuoteText = document.getElementById("newQuoteText");
     this.addQuoteBtn = document.getElementById("addQuoteBtn");
     this.notification = document.getElementById("notification");
+    this.fileInput = document.getElementById("hiddenFileInput");
+    this.selectFileBtn = document.getElementById("selectFileBtn");
+    this.importCategory = document.getElementById("importCategory");
+    this.importFileBtn = document.getElementById("importFileBtn");
   }
 
   bindEvents() {
@@ -40,7 +45,13 @@ class QuotesApp {
     this.randomQuoteBtn.addEventListener("click", () => this.showRandomQuote());
     this.favoriteBtn.addEventListener("click", () => this.showFavorites());
     this.exportBtn.addEventListener("click", () => this.exportFavorites());
+    this.importBtn.addEventListener("click", () => this.scrollToImport());
     this.addQuoteBtn.addEventListener("click", () => this.addCustomQuote());
+
+    // File import events
+    this.selectFileBtn.addEventListener("click", () => this.fileInput.click());
+    this.fileInput.addEventListener("change", (e) => this.handleFileSelect(e));
+    this.importFileBtn.addEventListener("click", () => this.importFromFile());
 
     // Real-time search
     this.searchInput.addEventListener("input", () => {
@@ -53,7 +64,7 @@ class QuotesApp {
   }
 
   async loadAllQuotes() {
-    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life'];
+    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life', 'custom'];
     
     try {
       for (const category of categories) {
@@ -211,6 +222,87 @@ class QuotesApp {
     this.showNotification("تم تصدير المقولات المفضلة بنجاح! 📁");
   }
 
+  scrollToImport() {
+    document.getElementById('importSection').scrollIntoView({ 
+      behavior: 'smooth' 
+    });
+    this.showNotification("اختر ملف لاستيراد المقولات 📁");
+  }
+
+  handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+      this.selectFileBtn.textContent = `تم اختيار: ${file.name}`;
+      this.importFileBtn.disabled = false;
+      this.showNotification(`تم اختيار الملف: ${file.name}`);
+    }
+  }
+
+  async importFromFile() {
+    if (!this.selectedFile) {
+      this.showNotification("يرجى اختيار ملف أولاً", "error");
+      return;
+    }
+
+    const category = this.importCategory.value;
+    
+    try {
+      const text = await this.selectedFile.text();
+      let quotes = [];
+
+      if (this.selectedFile.name.endsWith('.json')) {
+        quotes = JSON.parse(text);
+      } else {
+        // Text file - split by lines and filter empty lines
+        quotes = text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+      }
+
+      if (!Array.isArray(quotes)) {
+        throw new Error("تنسيق الملف غير صحيح");
+      }
+
+      // Add quotes to the selected category
+      if (!this.customQuotes[category]) {
+        this.customQuotes[category] = [];
+      }
+      
+      if (!this.allQuotes[category]) {
+        this.allQuotes[category] = [];
+      }
+
+      const newQuotes = quotes.filter(quote => 
+        !this.allQuotes[category].includes(quote)
+      );
+
+      this.customQuotes[category].push(...newQuotes);
+      this.allQuotes[category].push(...newQuotes);
+      
+      localStorage.setItem('customQuotes', JSON.stringify(this.customQuotes));
+      
+      this.showNotification(`تم استيراد ${newQuotes.length} مقولة جديدة بنجاح! ✨`);
+      
+      // Reset file input
+      this.fileInput.value = '';
+      this.selectedFile = null;
+      this.selectFileBtn.textContent = 'اختر ملف 📄';
+      this.importFileBtn.disabled = true;
+      
+      // Refresh current view if showing the same category
+      if (this.currentCategory === category || this.currentCategory === 'all') {
+        this.loadQuotes(this.currentCategory);
+      }
+      
+      this.updateTotalCount();
+      
+    } catch (error) {
+      console.error('Error importing file:', error);
+      this.showNotification("حدث خطأ في استيراد الملف. تأكد من تنسيق الملف.", "error");
+    }
+  }
+
   toggleFavorite(quote, button) {
     const index = this.favorites.indexOf(quote);
     
@@ -303,7 +395,8 @@ class QuotesApp {
       patience: 'الصبر',
       knowledge: 'العلم',
       motivation: 'التحفيز',
-      life: 'الحياة'
+      life: 'الحياة',
+      custom: 'مقولاتي الخاصة'
     };
     return names[category] || category;
   }

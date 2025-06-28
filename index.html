@@ -23,6 +23,7 @@
         <option value="knowledge">العلم</option>
         <option value="motivation">التحفيز</option>
         <option value="life">الحياة</option>
+        <option value="custom">مقولاتي الخاصة</option>
       </select>
       
       <div class="search-container">
@@ -39,6 +40,7 @@
         <button id="randomQuoteBtn">مقولة عشوائية 🎲</button>
         <button id="favoriteBtn">المفضلة ⭐</button>
         <button id="exportBtn">تصدير المفضلة 📤</button>
+        <button id="importBtn">استيراد ملف 📁</button>
       </div>
     </div>
 
@@ -58,14 +60,44 @@
           <option value="knowledge">العلم</option>
           <option value="motivation">التحفيز</option>
           <option value="life">الحياة</option>
+          <option value="custom">مقولاتي الخاصة</option>
         </select>
         <textarea id="newQuoteText" placeholder="اكتب المقولة هنا..." rows="3"></textarea>
         <button id="addQuoteBtn">إضافة المقولة ➕</button>
       </div>
     </div>
+
+    <div id="importSection" class="add-quote-section">
+      <h3>استيراد مقولات من ملف</h3>
+      <div class="import-form">
+        <input type="file" id="fileInput" accept=".txt,.json" style="display: none;">
+        <button id="selectFileBtn">اختر ملف 📄</button>
+        <select id="importCategory">
+          <option value="custom">مقولاتي الخاصة</option>
+          <option value="wisdom">الحكمة</option>
+          <option value="success">النجاح</option>
+          <option value="friendship">الصداقة</option>
+          <option value="love">الحب</option>
+          <option value="patience">الصبر</option>
+          <option value="knowledge">العلم</option>
+          <option value="motivation">التحفيز</option>
+          <option value="life">الحياة</option>
+        </select>
+        <button id="importFileBtn" disabled>استيراد المقولات 📥</button>
+      </div>
+      <div class="import-help">
+        <p><strong>تنسيقات الملفات المدعومة:</strong></p>
+        <ul>
+          <li><strong>ملف نصي (.txt):</strong> كل مقولة في سطر منفصل</li>
+          <li><strong>ملف JSON (.json):</strong> مصفوفة من النصوص</li>
+        </ul>
+      </div>
+    </div>
   </main>
 
   <div id="notification" class="notification hidden"></div>
+
+  <input type="file" id="hiddenFileInput" accept=".txt,.json" style="display: none;">
 
   <script src="script.js"></script>
 </body>
