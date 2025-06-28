@@ -1,389 +1,144 @@
+// تطبيق أقوال وحكم
 class QuotesApp {
   constructor() {
-    this.allQuotes = {};
+    this.quotes = {};
     this.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-    this.customQuotes = JSON.parse(localStorage.getItem('customQuotes')) || {};
     this.currentCategory = 'all';
     this.currentQuotes = [];
-    
-    this.initializeElements();
-    this.bindEvents();
-    this.loadAllQuotes();
+    this.init();
   }
 
-  initializeElements() {
-    this.categorySelect = document.getElementById("categorySelect");
-    this.quotesContainer = document.getElementById("quotesContainer");
-    this.searchInput = document.getElementById("searchInput");
-    this.searchBtn = document.getElementById("searchBtn");
-    this.quotesCount = document.getElementById("quotesCount");
-    this.randomQuoteBtn = document.getElementById("randomQuoteBtn");
-    this.favoriteBtn = document.getElementById("favoriteBtn");
-    this.exportBtn = document.getElementById("exportBtn");
-    this.importBtn = document.getElementById("importBtn");
-    this.newQuoteCategory = document.getElementById("newQuoteCategory");
-    this.newQuoteText = document.getElementById("newQuoteText");
-    this.addQuoteBtn = document.getElementById("addQuoteBtn");
-    this.notification = document.getElementById("notification");
-    this.fileInput = document.getElementById("hiddenFileInput");
-    this.selectFileBtn = document.getElementById("selectFileBtn");
-    this.importCategory = document.getElementById("importCategory");
-    this.importFileBtn = document.getElementById("importFileBtn");
+  async init() {
+    await this.loadQuotes();
+    this.setupEventListeners();
+    this.displayQuotes();
   }
 
-  bindEvents() {
-    this.categorySelect.addEventListener("change", () => {
-      this.currentCategory = this.categorySelect.value;
-      this.loadQuotes(this.currentCategory);
-    });
-
-    this.searchBtn.addEventListener("click", () => this.searchQuotes());
-    this.searchInput.addEventListener("keypress", (e) => {
-      if (e.key === 'Enter') this.searchQuotes();
-    });
-
-    this.randomQuoteBtn.addEventListener("click", () => this.showRandomQuote());
-    this.favoriteBtn.addEventListener("click", () => this.showFavorites());
-    this.exportBtn.addEventListener("click", () => this.exportFavorites());
-    this.importBtn.addEventListener("click", () => this.scrollToImport());
-    this.addQuoteBtn.addEventListener("click", () => this.addCustomQuote());
-
-    // File import events
-    this.selectFileBtn.addEventListener("click", () => this.fileInput.click());
-    this.fileInput.addEventListener("change", (e) => this.handleFileSelect(e));
-    this.importFileBtn.addEventListener("click", () => this.importFromFile());
-
-    // Real-time search
-    this.searchInput.addEventListener("input", () => {
-      if (this.searchInput.value.length > 2) {
-        this.searchQuotes();
-      } else if (this.searchInput.value.length === 0) {
-        this.loadQuotes(this.currentCategory);
-      }
-    });
-  }
-
-  async loadAllQuotes() {
+  async loadQuotes() {
     const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life', 'custom'];
     
-    try {
-      for (const category of categories) {
+    for (const category of categories) {
+      try {
         const response = await fetch(`data/${category}.json`);
-        const quotes = await response.json();
-        this.allQuotes[category] = quotes;
-        
-        // Merge custom quotes
-        if (this.customQuotes[category]) {
-          this.allQuotes[category] = [...quotes, ...this.customQuotes[category]];
+        if (response.ok) {
+          this.quotes[category] = await response.json();
         }
+      } catch (error) {
+        console.error(`خطأ في تحميل ${category}:`, error);
+        this.quotes[category] = [];
       }
-      
-      this.showNotification("تم تحميل جميع المقولات بنجاح! 🎉");
-      this.updateTotalCount();
-    } catch (error) {
-      console.error('Error loading quotes:', error);
-      this.showNotification("حدث خطأ في تحميل المقولات", "error");
     }
   }
 
-  loadQuotes(category) {
-    this.quotesContainer.innerHTML = '<div class="loading">جارٍ التحميل...</div>';
+  setupEventListeners() {
+    // اختيار الفئة
+    document.getElementById('categorySelect').addEventListener('change', (e) => {
+      this.currentCategory = e.target.value;
+      this.displayQuotes();
+    });
 
-    setTimeout(() => {
-      if (category === "all") {
-        this.currentQuotes = Object.values(this.allQuotes).flat();
-      } else {
-        this.currentQuotes = this.allQuotes[category] || [];
+    // البحث
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      this.searchQuotes(e.target.value);
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const searchTerm = document.getElementById('searchInput').value;
+      this.searchQuotes(searchTerm);
+    });
+
+    // مقولة عشوائية
+    document.getElementById('randomQuoteBtn').addEventListener('click', () => {
+      this.showRandomQuote();
+    });
+
+    // المفضلة
+    document.getElementById('favoriteBtn').addEventListener('click', () => {
+      this.showFavorites();
+    });
+
+    // تصدير المفضلة
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      this.exportFavorites();
+    });
+
+    // استيراد ملف
+    document.getElementById('importBtn').addEventListener('click', () => {
+      this.toggleImportSection();
+    });
+
+    // إضافة مقولة جديدة
+    document.getElementById('addQuoteBtn').addEventListener('click', () => {
+      this.addNewQuote();
+    });
+
+    // استيراد الملفات
+    document.getElementById('selectFileBtn').addEventListener('click', () => {
+      document.getElementById('fileInput').click();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      this.handleFileSelect(e.target.files[0]);
+    });
+
+    document.getElementById('importFileBtn').addEventListener('click', () => {
+      this.importFile();
+    });
+
+    // Enter للبحث
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.searchQuotes(e.target.value);
       }
-
-      this.displayQuotes(this.currentQuotes, category);
-      this.updateQuotesCount();
-    }, 300);
+    });
   }
 
-  displayQuotes(quotes, category = null) {
-    this.quotesContainer.innerHTML = "";
+  displayQuotes() {
+    const container = document.getElementById('quotesContainer');
+    let quotesToShow = [];
 
+    if (this.currentCategory === 'all') {
+      quotesToShow = Object.values(this.quotes).flat();
+    } else {
+      quotesToShow = this.quotes[this.currentCategory] || [];
+    }
+
+    this.currentQuotes = quotesToShow;
+    this.renderQuotes(quotesToShow);
+    this.updateStats(quotesToShow.length);
+  }
+
+  renderQuotes(quotes) {
+    const container = document.getElementById('quotesContainer');
+    
     if (quotes.length === 0) {
-      this.quotesContainer.innerHTML = '<p class="welcome-message">لا توجد مقولات في هذا الباب</p>';
+      container.innerHTML = '<p class="welcome-message">لا توجد مقولات في هذه الفئة</p>';
       return;
     }
 
-    quotes.forEach((quote, index) => {
-      const card = document.createElement("div");
-      card.className = "quote-card";
-      
-      // Determine category for badge
-      let quoteCat = category;
-      if (category === 'all' || !category) {
-        quoteCat = this.findQuoteCategory(quote);
-      }
-      
-      const categoryBadge = quoteCat && quoteCat !== 'all' ? 
-        `<div class="category-badge">${this.getCategoryName(quoteCat)}</div>` : '';
-      
-      const isFavorite = this.favorites.includes(quote);
-      
-      card.innerHTML = `
-        ${categoryBadge}
+    container.innerHTML = quotes.map((quote, index) => `
+      <div class="quote-card">
+        <div class="category-badge">${this.getCategoryName(this.findQuoteCategory(quote))}</div>
         <div class="quote-text">${quote}</div>
         <div class="quote-actions">
           <button onclick="app.toggleFavorite('${quote.replace(/'/g, "\\'")}', this)" 
-                  title="${isFavorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}">
-            ${isFavorite ? '⭐' : '☆'}
+                  class="${this.favorites.includes(quote) ? 'favorite' : ''}">
+            ${this.favorites.includes(quote) ? '⭐' : '☆'}
           </button>
-          <button onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}', this)" title="نسخ">
-            📋
-          </button>
-          <button onclick="app.shareQuote('${quote.replace(/'/g, "\\'")}', this)" title="مشاركة">
-            📤
-          </button>
+          <button onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}')">📋</button>
+          <button onclick="app.shareQuote('${quote.replace(/'/g, "\\'")}')">📤</button>
         </div>
-      `;
-      
-      this.quotesContainer.appendChild(card);
-    });
+      </div>
+    `).join('');
   }
 
   findQuoteCategory(quote) {
-    for (const [category, quotes] of Object.entries(this.allQuotes)) {
+    for (const [category, quotes] of Object.entries(this.quotes)) {
       if (quotes.includes(quote)) {
         return category;
       }
     }
-    return null;
-  }
-
-  searchQuotes() {
-    const searchTerm = this.searchInput.value.trim();
-    
-    if (!searchTerm) {
-      this.loadQuotes(this.currentCategory);
-      return;
-    }
-
-    const allQuotes = Object.values(this.allQuotes).flat();
-    const filteredQuotes = allQuotes.filter(quote => 
-      quote.includes(searchTerm)
-    );
-
-    this.currentQuotes = filteredQuotes;
-    this.displayQuotes(filteredQuotes);
-    this.updateQuotesCount();
-    
-    if (filteredQuotes.length > 0) {
-      this.showNotification(`تم العثور على ${filteredQuotes.length} مقولة`);
-    } else {
-      this.showNotification("لم يتم العثور على نتائج", "error");
-    }
-  }
-
-  showRandomQuote() {
-    const allQuotes = Object.values(this.allQuotes).flat();
-    if (allQuotes.length === 0) return;
-
-    const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
-    this.displayQuotes([randomQuote]);
-    this.updateQuotesCount();
-    this.showNotification("مقولة عشوائية! 🎲");
-  }
-
-  showFavorites() {
-    if (this.favorites.length === 0) {
-      this.quotesContainer.innerHTML = '<p class="welcome-message">لا توجد مقولات مفضلة بعد</p>';
-      this.updateQuotesCount();
-      return;
-    }
-
-    this.currentQuotes = this.favorites;
-    this.displayQuotes(this.favorites);
-    this.updateQuotesCount();
-    this.showNotification(`عرض ${this.favorites.length} مقولة مفضلة ⭐`);
-  }
-
-  exportFavorites() {
-    if (this.favorites.length === 0) {
-      this.showNotification("لا توجد مقولات مفضلة للتصدير", "error");
-      return;
-    }
-
-    const favoritesText = this.favorites.map((quote, index) => `${index + 1}. ${quote}`).join('\n\n');
-    const blob = new Blob([favoritesText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'مقولاتي_المفضلة.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    this.showNotification("تم تصدير المقولات المفضلة بنجاح! 📁");
-  }
-
-  scrollToImport() {
-    document.getElementById('importSection').scrollIntoView({ 
-      behavior: 'smooth' 
-    });
-    this.showNotification("اختر ملف لاستيراد المقولات 📁");
-  }
-
-  handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-      this.selectedFile = file;
-      this.selectFileBtn.textContent = `تم اختيار: ${file.name}`;
-      this.importFileBtn.disabled = false;
-      this.showNotification(`تم اختيار الملف: ${file.name}`);
-    }
-  }
-
-  async importFromFile() {
-    if (!this.selectedFile) {
-      this.showNotification("يرجى اختيار ملف أولاً", "error");
-      return;
-    }
-
-    const category = this.importCategory.value;
-    
-    try {
-      const text = await this.selectedFile.text();
-      let quotes = [];
-
-      if (this.selectedFile.name.endsWith('.json')) {
-        quotes = JSON.parse(text);
-      } else {
-        // Text file - split by lines and filter empty lines
-        quotes = text.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0);
-      }
-
-      if (!Array.isArray(quotes)) {
-        throw new Error("تنسيق الملف غير صحيح");
-      }
-
-      // Add quotes to the selected category
-      if (!this.customQuotes[category]) {
-        this.customQuotes[category] = [];
-      }
-      
-      if (!this.allQuotes[category]) {
-        this.allQuotes[category] = [];
-      }
-
-      const newQuotes = quotes.filter(quote => 
-        !this.allQuotes[category].includes(quote)
-      );
-
-      this.customQuotes[category].push(...newQuotes);
-      this.allQuotes[category].push(...newQuotes);
-      
-      localStorage.setItem('customQuotes', JSON.stringify(this.customQuotes));
-      
-      this.showNotification(`تم استيراد ${newQuotes.length} مقولة جديدة بنجاح! ✨`);
-      
-      // Reset file input
-      this.fileInput.value = '';
-      this.selectedFile = null;
-      this.selectFileBtn.textContent = 'اختر ملف 📄';
-      this.importFileBtn.disabled = true;
-      
-      // Refresh current view if showing the same category
-      if (this.currentCategory === category || this.currentCategory === 'all') {
-        this.loadQuotes(this.currentCategory);
-      }
-      
-      this.updateTotalCount();
-      
-    } catch (error) {
-      console.error('Error importing file:', error);
-      this.showNotification("حدث خطأ في استيراد الملف. تأكد من تنسيق الملف.", "error");
-    }
-  }
-
-  toggleFavorite(quote, button) {
-    const index = this.favorites.indexOf(quote);
-    
-    if (index > -1) {
-      this.favorites.splice(index, 1);
-      button.innerHTML = '☆';
-      button.title = 'إضافة للمفضلة';
-      this.showNotification("تم إزالة المقولة من المفضلة");
-    } else {
-      this.favorites.push(quote);
-      button.innerHTML = '⭐';
-      button.title = 'إزالة من المفضلة';
-      this.showNotification("تم إضافة المقولة للمفضلة");
-    }
-    
-    localStorage.setItem('favorites', JSON.stringify(this.favorites));
-  }
-
-  copyQuote(quote, button) {
-    navigator.clipboard.writeText(quote).then(() => {
-      const originalText = button.innerHTML;
-      button.innerHTML = '✅';
-      setTimeout(() => {
-        button.innerHTML = originalText;
-      }, 1000);
-      this.showNotification("تم نسخ المقولة");
-    }).catch(() => {
-      this.showNotification("فشل في نسخ المقولة", "error");
-    });
-  }
-
-  shareQuote(quote, button) {
-    if (navigator.share) {
-      navigator.share({
-        title: 'مقولة وحكمة',
-        text: quote,
-        url: window.location.href
-      });
-    } else {
-      this.copyQuote(quote, button);
-      this.showNotification("تم نسخ المقولة للمشاركة");
-    }
-  }
-
-  addCustomQuote() {
-    const category = this.newQuoteCategory.value;
-    const text = this.newQuoteText.value.trim();
-
-    if (!text) {
-      this.showNotification("يرجى كتابة المقولة", "error");
-      return;
-    }
-
-    if (!this.customQuotes[category]) {
-      this.customQuotes[category] = [];
-    }
-
-    this.customQuotes[category].push(text);
-    this.allQuotes[category].push(text);
-    
-    localStorage.setItem('customQuotes', JSON.stringify(this.customQuotes));
-    
-    this.newQuoteText.value = '';
-    this.showNotification("تم إضافة المقولة بنجاح! ✨");
-    
-    // Refresh current view if showing the same category
-    if (this.currentCategory === category || this.currentCategory === 'all') {
-      this.loadQuotes(this.currentCategory);
-    }
-    
-    this.updateTotalCount();
-  }
-
-  updateQuotesCount() {
-    const count = this.currentQuotes.length;
-    this.quotesCount.textContent = `${count} مقولة`;
-  }
-
-  updateTotalCount() {
-    const totalQuotes = Object.values(this.allQuotes).flat().length;
-    console.log(`إجمالي المقولات: ${totalQuotes}`);
+    return 'custom';
   }
 
   getCategoryName(category) {
@@ -398,37 +153,241 @@ class QuotesApp {
       life: 'الحياة',
       custom: 'مقولاتي الخاصة'
     };
-    return names[category] || category;
+    return names[category] || 'غير محدد';
+  }
+
+  searchQuotes(searchTerm) {
+    if (!searchTerm.trim()) {
+      this.displayQuotes();
+      return;
+    }
+
+    const allQuotes = Object.values(this.quotes).flat();
+    const filteredQuotes = allQuotes.filter(quote => 
+      quote.includes(searchTerm.trim())
+    );
+
+    this.renderQuotes(filteredQuotes);
+    this.updateStats(filteredQuotes.length);
+  }
+
+  showRandomQuote() {
+    const allQuotes = Object.values(this.quotes).flat();
+    if (allQuotes.length === 0) return;
+
+    const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
+    this.renderQuotes([randomQuote]);
+    this.updateStats(1);
+    this.showNotification('تم عرض مقولة عشوائية! 🎲');
+  }
+
+  showFavorites() {
+    if (this.favorites.length === 0) {
+      this.showNotification('لا توجد مقولات مفضلة بعد', 'error');
+      return;
+    }
+
+    this.renderQuotes(this.favorites);
+    this.updateStats(this.favorites.length);
+    this.showNotification(`تم عرض ${this.favorites.length} مقولة مفضلة ⭐`);
+  }
+
+  toggleFavorite(quote, button) {
+    const index = this.favorites.indexOf(quote);
+    
+    if (index === -1) {
+      this.favorites.push(quote);
+      button.innerHTML = '⭐';
+      button.classList.add('favorite');
+      this.showNotification('تمت إضافة المقولة للمفضلة ⭐');
+    } else {
+      this.favorites.splice(index, 1);
+      button.innerHTML = '☆';
+      button.classList.remove('favorite');
+      this.showNotification('تم حذف المقولة من المفضلة');
+    }
+
+    localStorage.setItem('favorites', JSON.stringify(this.favorites));
+  }
+
+  copyQuote(quote) {
+    navigator.clipboard.writeText(quote).then(() => {
+      this.showNotification('تم نسخ المقولة 📋');
+    }).catch(() => {
+      this.showNotification('فشل في نسخ المقولة', 'error');
+    });
+  }
+
+  shareQuote(quote) {
+    if (navigator.share) {
+      navigator.share({
+        title: 'مقولة وحكمة',
+        text: quote
+      });
+    } else {
+      this.copyQuote(quote);
+    }
+  }
+
+  exportFavorites() {
+    if (this.favorites.length === 0) {
+      this.showNotification('لا توجد مقولات مفضلة للتصدير', 'error');
+      return;
+    }
+
+    const dataStr = JSON.stringify(this.favorites, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = 'مقولاتي_المفضلة.json';
+    link.click();
+    
+    this.showNotification(`تم تصدير ${this.favorites.length} مقولة مفضلة 📤`);
+  }
+
+  toggleImportSection() {
+    const section = document.getElementById('importSection');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+  }
+
+  addNewQuote() {
+    const category = document.getElementById('newQuoteCategory').value;
+    const text = document.getElementById('newQuoteText').value.trim();
+
+    if (!text) {
+      this.showNotification('يرجى كتابة نص المقولة', 'error');
+      return;
+    }
+
+    if (!this.quotes[category]) {
+      this.quotes[category] = [];
+    }
+
+    if (this.quotes[category].includes(text)) {
+      this.showNotification('هذه المقولة موجودة بالفعل', 'error');
+      return;
+    }
+
+    this.quotes[category].push(text);
+    this.saveQuotesToStorage(category);
+    
+    document.getElementById('newQuoteText').value = '';
+    this.showNotification('تمت إضافة المقولة بنجاح ✅');
+    
+    if (this.currentCategory === category || this.currentCategory === 'all') {
+      this.displayQuotes();
+    }
+  }
+
+  handleFileSelect(file) {
+    if (!file) return;
+
+    const importBtn = document.getElementById('importFileBtn');
+    const selectBtn = document.getElementById('selectFileBtn');
+    
+    selectBtn.textContent = `تم اختيار: ${file.name}`;
+    importBtn.disabled = false;
+    
+    this.selectedFile = file;
+  }
+
+  async importFile() {
+    if (!this.selectedFile) return;
+
+    const category = document.getElementById('importCategory').value;
+    const fileType = this.selectedFile.name.split('.').pop().toLowerCase();
+
+    try {
+      const text = await this.selectedFile.text();
+      let newQuotes = [];
+
+      if (fileType === 'json') {
+        const parsed = JSON.parse(text);
+        newQuotes = Array.isArray(parsed) ? parsed : [];
+      } else if (fileType === 'txt') {
+        newQuotes = text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+      } else {
+        throw new Error('نوع ملف غير مدعوم');
+      }
+
+      if (!this.quotes[category]) {
+        this.quotes[category] = [];
+      }
+
+      const existingQuotes = this.quotes[category];
+      const uniqueQuotes = newQuotes.filter(quote => !existingQuotes.includes(quote));
+
+      if (uniqueQuotes.length === 0) {
+        this.showNotification('جميع المقولات موجودة بالفعل', 'error');
+        return;
+      }
+
+      this.quotes[category].push(...uniqueQuotes);
+      this.saveQuotesToStorage(category);
+
+      this.showNotification(`تم استيراد ${uniqueQuotes.length} مقولة جديدة ✅`);
+      
+      // إعادة تعيين النموذج
+      document.getElementById('selectFileBtn').textContent = 'اختر ملف 📄';
+      document.getElementById('importFileBtn').disabled = true;
+      this.selectedFile = null;
+      
+      if (this.currentCategory === category || this.currentCategory === 'all') {
+        this.displayQuotes();
+      }
+
+    } catch (error) {
+      this.showNotification('خطأ في قراءة الملف: ' + error.message, 'error');
+    }
+  }
+
+  saveQuotesToStorage(category) {
+    localStorage.setItem(`quotes_${category}`, JSON.stringify(this.quotes[category]));
+  }
+
+  loadQuotesFromStorage() {
+    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life', 'custom'];
+    
+    categories.forEach(category => {
+      const stored = localStorage.getItem(`quotes_${category}`);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            this.quotes[category] = [...(this.quotes[category] || []), ...parsed];
+          }
+        } catch (error) {
+          console.error(`خطأ في تحميل ${category} من التخزين المحلي:`, error);
+        }
+      }
+    });
+  }
+
+  updateStats(count) {
+    document.getElementById('quotesCount').textContent = `${count} مقولة`;
   }
 
   showNotification(message, type = 'success') {
-    this.notification.textContent = message;
-    this.notification.className = `notification ${type}`;
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
     
     setTimeout(() => {
-      this.notification.classList.add('hidden');
+      notification.classList.add('hidden');
     }, 3000);
   }
 }
 
-// Initialize the app
+// تشغيل التطبيق
 const app = new QuotesApp();
 
-// Daily notification feature
-if ('Notification' in window && 'serviceWorker' in navigator) {
-  Notification.requestPermission().then(permission => {
-    if (permission === 'granted') {
-      // Set up daily notification
-      setInterval(() => {
-        const allQuotes = Object.values(app.allQuotes).flat();
-        if (allQuotes.length > 0) {
-          const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
-          new Notification('حكمة اليوم', {
-            body: randomQuote,
-            icon: 'icon-192.png'
-          });
-        }
-      }, 24 * 60 * 60 * 1000); // 24 hours
-    }
-  });
-}
+// تحميل البيانات من التخزين المحلي بعد تحميل البيانات الأساسية
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    app.loadQuotesFromStorage();
+    app.displayQuotes();
+  }, 1000);
+});
