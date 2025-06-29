@@ -7,6 +7,8 @@ class QuotesApp {
     this.currentCategory = 'all';
     this.currentQuotes = [];
     this.notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+    this.lastNotificationTime = localStorage.getItem('lastNotificationTime') || 0;
+    this.notificationInterval = null;
     this.init();
   }
 
@@ -48,7 +50,7 @@ class QuotesApp {
         
         // بدء الإشعارات إذا كانت مفعلة
         if (this.notificationsEnabled) {
-          await this.enableNotifications();
+          await this.startNotificationScheduler();
         }
       } catch (error) {
         console.warn('Service Worker غير مدعوم في هذه البيئة:', error.message);
@@ -71,7 +73,14 @@ class QuotesApp {
     notificationBtn.innerHTML = this.notificationsEnabled ? 'إيقاف الإشعارات 🔕' : 'تفعيل الإشعارات 🔔';
     notificationBtn.addEventListener('click', () => this.toggleNotifications());
     
+    // إضافة زر تجربة الإشعار
+    const testNotificationBtn = document.createElement('button');
+    testNotificationBtn.id = 'testNotificationBtn';
+    testNotificationBtn.innerHTML = 'تجربة الإشعار 🧪';
+    testNotificationBtn.addEventListener('click', () => this.sendTestNotification());
+    
     actionButtons.appendChild(notificationBtn);
+    actionButtons.appendChild(testNotificationBtn);
   }
 
   async toggleNotifications() {
@@ -91,20 +100,18 @@ class QuotesApp {
         this.notificationsEnabled = true;
         localStorage.setItem('notificationsEnabled', 'true');
         
-        // إرسال رسالة للـ Service Worker لبدء جدولة الإشعارات
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'SCHEDULE_DAILY_NOTIFICATION'
-          });
-        }
+        // بدء جدولة الإشعارات
+        await this.startNotificationScheduler();
         
         // تحديث النص
         document.getElementById('notificationBtn').innerHTML = 'إيقاف الإشعارات 🔕';
         
-        this.showNotification('تم تفعيل الإشعارات اليومية! ستصلك حكمة جديدة كل يوم في الساعة 9 صباحاً 🌅');
+        this.showNotification('تم تفعيل الإشعارات اليومية! ستصلك حكمة جديدة كل 24 ساعة 🌅');
         
         // إرسال إشعار تجريبي
-        this.sendTestNotification();
+        setTimeout(() => {
+          this.sendDailyQuoteNotification();
+        }, 2000);
       } else {
         this.showNotification('يرجى السماح بالإشعارات لتفعيل هذه الميزة', 'error');
       }
@@ -118,40 +125,128 @@ class QuotesApp {
     this.notificationsEnabled = false;
     localStorage.setItem('notificationsEnabled', 'false');
     
+    // إيقاف المؤقت
+    if (this.notificationInterval) {
+      clearInterval(this.notificationInterval);
+      this.notificationInterval = null;
+    }
+    
     // تحديث النص
     document.getElementById('notificationBtn').innerHTML = 'تفعيل الإشعارات 🔔';
     
     this.showNotification('تم إيقاف الإشعارات اليومية');
   }
 
-  async sendTestNotification() {
-    if ('serviceWorker' in navigator && 'Notification' in window) {
-      const allQuotes = Object.values(this.quotes).flat();
-      if (allQuotes.length > 0) {
-        const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
-        
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          registration.showNotification('🌟 مرحباً! هذا إشعار تجريبي', {
-            body: randomQuote,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            tag: 'test-quote',
-            requireInteraction: false,
-            silent: false,
-            vibrate: [200, 100, 200]
-          });
-        } catch (error) {
-          console.warn('لا يمكن إرسال الإشعار التجريبي:', error.message);
-          // إرسال إشعار بسيط بدلاً من ذلك
-          if (Notification.permission === 'granted') {
-            new Notification('🌟 مرحباً! هذا إشعار تجريبي', {
-              body: randomQuote,
-              icon: '/icon-192.png'
-            });
-          }
-        }
+  async startNotificationScheduler() {
+    // إيقاف المؤقت السابق إن وجد
+    if (this.notificationInterval) {
+      clearInterval(this.notificationInterval);
+    }
+
+    // التحقق من الوقت المناسب لإرسال الإشعار
+    const checkAndSendNotification = () => {
+      const now = Date.now();
+      const lastNotification = parseInt(this.lastNotificationTime);
+      const timeDifference = now - lastNotification;
+      const twentyFourHours = 24 * 60 * 60 * 1000; // 24 ساعة بالميلي ثانية
+
+      // إرسال إشعار إذا مر أكثر من 24 ساعة أو إذا كانت هذه المرة الأولى
+      if (timeDifference >= twentyFourHours || lastNotification === 0) {
+        this.sendDailyQuoteNotification();
+        localStorage.setItem('lastNotificationTime', now.toString());
       }
+    };
+
+    // فحص فوري
+    checkAndSendNotification();
+
+    // فحص كل ساعة للتأكد من عدم تفويت الموعد
+    this.notificationInterval = setInterval(checkAndSendNotification, 60 * 60 * 1000); // كل ساعة
+  }
+
+  async sendTestNotification() {
+    if (Notification.permission !== 'granted') {
+      this.showNotification('يرجى تفعيل الإشعارات أولاً', 'error');
+      return;
+    }
+
+    this.sendDailyQuoteNotification();
+    this.showNotification('تم إرسال إشعار تجريبي! 🧪');
+  }
+
+  async sendDailyQuoteNotification() {
+    // جمع جميع المقولات
+    const allQuotes = [];
+    
+    // إضافة المقولات من جميع الفئات
+    Object.values(this.quotes).forEach(categoryQuotes => {
+      if (Array.isArray(categoryQuotes)) {
+        allQuotes.push(...categoryQuotes);
+      }
+    });
+
+    // إضافة المقولات المخصصة
+    this.userQuotes.forEach(userQuote => {
+      allQuotes.push(userQuote.text);
+    });
+
+    if (allQuotes.length === 0) {
+      console.warn('لا توجد مقولات لإرسالها');
+      return;
+    }
+
+    // اختيار مقولة عشوائية
+    const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
+    
+    try {
+      // محاولة استخدام Service Worker أولاً
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('🌟 حكمة اليوم', {
+          body: randomQuote,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: 'daily-quote',
+          requireInteraction: false,
+          silent: false,
+          vibrate: [200, 100, 200],
+          data: {
+            quote: randomQuote,
+            timestamp: Date.now()
+          },
+          actions: [
+            {
+              action: 'open',
+              title: 'فتح التطبيق',
+              icon: '/icon-192.png'
+            }
+          ]
+        });
+      } else {
+        // استخدام الإشعار العادي كبديل
+        const notification = new Notification('🌟 حكمة اليوم', {
+          body: randomQuote,
+          icon: '/icon-192.png',
+          tag: 'daily-quote',
+          requireInteraction: false,
+          silent: false
+        });
+
+        // إغلاق الإشعار تلقائياً بعد 10 ثوانٍ
+        setTimeout(() => {
+          notification.close();
+        }, 10000);
+
+        // التعامل مع النقر على الإشعار
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      }
+
+      console.log('تم إرسال إشعار يومي:', randomQuote);
+    } catch (error) {
+      console.error('خطأ في إرسال الإشعار:', error);
     }
   }
 

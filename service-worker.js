@@ -1,5 +1,5 @@
-// Service Worker للإشعارات اليومية
-const CACHE_NAME = 'quotes-app-v1';
+// Service Worker للإشعارات اليومية المحسن
+const CACHE_NAME = 'quotes-app-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -23,6 +23,7 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
   );
+  self.skipWaiting();
 });
 
 // تفعيل Service Worker
@@ -38,6 +39,7 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  self.clients.claim();
 });
 
 // التعامل مع الطلبات
@@ -57,34 +59,42 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
-  event.waitUntil(
-    clients.openWindow('/')
-  );
-});
-
-// إرسال إشعار يومي
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SCHEDULE_DAILY_NOTIFICATION') {
-    scheduleDailyNotification();
+  if (event.action === 'open') {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  } else {
+    event.waitUntil(
+      clients.matchAll().then((clientList) => {
+        if (clientList.length > 0) {
+          return clientList[0].focus();
+        }
+        return clients.openWindow('/');
+      })
+    );
   }
 });
 
-function scheduleDailyNotification() {
-  // جدولة الإشعار التالي بعد 24 ساعة
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(9, 0, 0, 0); // 9 صباحاً
-  
-  const timeUntilTomorrow = tomorrow.getTime() - now.getTime();
-  
-  setTimeout(() => {
-    showDailyQuote();
-    scheduleDailyNotification(); // جدولة الإشعار التالي
-  }, timeUntilTomorrow);
-}
+// التعامل مع إغلاق الإشعار
+self.addEventListener('notificationclose', (event) => {
+  console.log('تم إغلاق الإشعار:', event.notification.tag);
+});
 
-async function showDailyQuote() {
+// معالجة الرسائل من التطبيق الرئيسي
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SCHEDULE_DAILY_NOTIFICATION') {
+    console.log('تم استلام طلب جدولة الإشعارات اليومية');
+  }
+});
+
+// إرسال إشعار دوري (يتم استدعاؤه من التطبيق الرئيسي)
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'daily-quote-sync') {
+    event.waitUntil(sendDailyQuote());
+  }
+});
+
+async function sendDailyQuote() {
   try {
     // تحميل جميع المقولات
     const allQuotes = [];
@@ -107,7 +117,7 @@ async function showDailyQuote() {
       const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
       
       // إرسال الإشعار
-      self.registration.showNotification('🌟 حكمة اليوم', {
+      await self.registration.showNotification('🌟 حكمة اليوم', {
         body: randomQuote,
         icon: '/icon-192.png',
         badge: '/icon-192.png',
@@ -118,8 +128,17 @@ async function showDailyQuote() {
         data: {
           quote: randomQuote,
           timestamp: Date.now()
-        }
+        },
+        actions: [
+          {
+            action: 'open',
+            title: 'فتح التطبيق',
+            icon: '/icon-192.png'
+          }
+        ]
       });
+      
+      console.log('تم إرسال إشعار يومي بنجاح');
     }
   } catch (error) {
     console.error('خطأ في إرسال الإشعار اليومي:', error);
