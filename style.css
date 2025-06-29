@@ -300,6 +300,89 @@ main {
   border: 1px solid rgba(236, 240, 241, 0.1);
 }
 
+/* Share Modal Styles */
+.share-modal-content {
+  max-width: 500px;
+}
+
+.quote-preview {
+  background: rgba(52, 73, 94, 0.5);
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border-right: 3px solid #3498db;
+}
+
+.quote-preview p {
+  margin: 0;
+  font-style: italic;
+  color: #ecf0f1;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.share-options h3 {
+  margin: 0 0 15px 0;
+  color: #3498db;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.share-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+  text-decoration: none;
+}
+
+.share-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.share-btn.whatsapp {
+  background: linear-gradient(45deg, #25d366, #128c7e);
+}
+
+.share-btn.telegram {
+  background: linear-gradient(45deg, #0088cc, #006bb3);
+}
+
+.share-btn.twitter {
+  background: linear-gradient(45deg, #1da1f2, #0d8bd9);
+}
+
+.share-btn.facebook {
+  background: linear-gradient(45deg, #1877f2, #166fe5);
+}
+
+.share-btn.copy {
+  background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+}
+
+.share-btn.native {
+  background: linear-gradient(45deg, #e67e22, #d35400);
+}
+
+.share-icon {
+  font-size: 16px;
+}
+
 @keyframes modalSlideIn {
   from {
     opacity: 0;
@@ -630,6 +713,14 @@ main {
     margin: 10px;
   }
 
+  .share-modal-content {
+    max-width: 95%;
+  }
+
+  .share-buttons {
+    grid-template-columns: 1fr;
+  }
+
   .form-actions {
     flex-direction: column;
   }
@@ -670,5 +761,10 @@ main {
 
   .modal-header {
     padding: 12px 15px;
+  }
+
+  .share-btn {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }

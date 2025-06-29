@@ -412,11 +412,12 @@ class QuotesApp {
           <div class="quote-text">${quote}</div>
           <div class="quote-actions">
             <button onclick="app.toggleFavorite('${quote.replace(/'/g, "\\'")}', this)" 
-                    class="${this.favorites.includes(quote) ? 'favorite' : ''}">
+                    class="${this.favorites.includes(quote) ? 'favorite' : ''}"
+                    title="إضافة للمفضلة">
               ${this.favorites.includes(quote) ? '⭐' : '☆'}
             </button>
             <button onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}')">📋</button>
-            <button onclick="app.shareQuote('${quote.replace(/'/g, "\\'")}')">📤</button>
+            <button onclick="app.showShareModal('${quote.replace(/'/g, "\\'")}')">📤</button>
             ${isUserQuote ? `<button onclick="app.deleteUserQuote('${userQuote.id}')" class="delete-btn" title="حذف المقولة">🗑️</button>` : ''}
           </div>
         </div>
@@ -550,14 +551,123 @@ class QuotesApp {
     });
   }
 
-  shareQuote(quote) {
+  showShareModal(quote) {
+    // إنشاء نافذة المشاركة
+    const modal = document.createElement('div');
+    modal.className = 'modal share-modal';
+    modal.innerHTML = `
+      <div class="modal-content share-modal-content">
+        <div class="modal-header">
+          <h2>📤 مشاركة الحكمة</h2>
+          <button class="close-btn" onclick="this.closest('.modal').remove()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="quote-preview">
+            <p>"${quote}"</p>
+          </div>
+          <div class="share-options">
+            <h3>اختر طريقة المشاركة:</h3>
+            <div class="share-buttons">
+              <button class="share-btn whatsapp" onclick="app.shareToWhatsApp('${quote.replace(/'/g, "\\'")}')">
+                <span class="share-icon">📱</span>
+                واتساب
+              </button>
+              <button class="share-btn telegram" onclick="app.shareToTelegram('${quote.replace(/'/g, "\\'")}')">
+                <span class="share-icon">✈️</span>
+                تيليجرام
+              </button>
+              <button class="share-btn twitter" onclick="app.shareToTwitter('${quote.replace(/'/g, "\\'")}')">
+                <span class="share-icon">🐦</span>
+                تويتر
+              </button>
+              <button class="share-btn facebook" onclick="app.shareToFacebook('${quote.replace(/'/g, "\\'")}')">
+                <span class="share-icon">📘</span>
+                فيسبوك
+              </button>
+              <button class="share-btn copy" onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}'); this.closest('.modal').remove();">
+                <span class="share-icon">📋</span>
+                نسخ النص
+              </button>
+              <button class="share-btn native" onclick="app.shareNative('${quote.replace(/'/g, "\\'")}')">
+                <span class="share-icon">📤</span>
+                مشاركة أخرى
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // إضافة النافذة للصفحة
+    document.body.appendChild(modal);
+
+    // إغلاق النافذة عند النقر خارجها
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+
+    // إغلاق النافذة بمفتاح Escape
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        modal.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+  }
+
+  shareToWhatsApp(quote) {
+    const text = encodeURIComponent(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
+    const url = `https://wa.me/?text=${text}`;
+    window.open(url, '_blank');
+    this.closeShareModal();
+  }
+
+  shareToTelegram(quote) {
+    const text = encodeURIComponent(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
+    const url = `https://t.me/share/url?text=${text}`;
+    window.open(url, '_blank');
+    this.closeShareModal();
+  }
+
+  shareToTwitter(quote) {
+    const text = encodeURIComponent(`"${quote}"\n\n📚 #مقولات_وحكم #حكمة`);
+    const url = `https://twitter.com/intent/tweet?text=${text}`;
+    window.open(url, '_blank');
+    this.closeShareModal();
+  }
+
+  shareToFacebook(quote) {
+    const text = encodeURIComponent(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
+    const url = `https://www.facebook.com/sharer/sharer.php?quote=${text}`;
+    window.open(url, '_blank');
+    this.closeShareModal();
+  }
+
+  shareNative(quote) {
     if (navigator.share) {
       navigator.share({
-        title: 'مقولة وحكمة',
-        text: quote
+        title: '📚 حكمة من تطبيق مقولات وحكم',
+        text: `"${quote}"\n\n📚 من تطبيق مقولات وحكم`
+      }).then(() => {
+        this.closeShareModal();
+        this.showNotification('تم مشاركة المقولة بنجاح! 📤');
+      }).catch((error) => {
+        console.log('خطأ في المشاركة:', error);
       });
     } else {
-      this.copyQuote(quote);
+      // نسخ النص كبديل
+      this.copyQuote(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
+      this.closeShareModal();
+    }
+  }
+
+  closeShareModal() {
+    const modal = document.querySelector('.share-modal');
+    if (modal) {
+      modal.remove();
     }
   }
 
