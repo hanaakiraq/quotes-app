@@ -133,14 +133,6 @@ main {
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3) !important;
 }
 
-#importBtn {
-  background: linear-gradient(45deg, #fd7e14, #e63946) !important;
-}
-
-#importBtn:hover {
-  box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3) !important;
-}
-
 #notificationBtn {
   background: linear-gradient(45deg, #17a2b8, #6f42c1) !important;
 }
@@ -216,107 +208,6 @@ main {
   color: #ffd700 !important;
 }
 
-.add-quote-section {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 30px;
-  margin-top: 40px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.add-quote-section h3 {
-  margin-top: 0;
-  color: #333;
-  font-size: 1.5rem;
-  margin-bottom: 20px;
-}
-
-.add-quote-form {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  align-items: flex-end;
-}
-
-.add-quote-form select,
-.add-quote-form textarea {
-  flex: 1;
-  min-width: 200px;
-}
-
-.add-quote-form textarea {
-  resize: vertical;
-  font-family: inherit;
-  line-height: 1.5;
-}
-
-#addQuoteBtn {
-  background: linear-gradient(45deg, #28a745, #20c997);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-#addQuoteBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-}
-
-.import-form {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.import-form button {
-  background: linear-gradient(45deg, #fd7e14, #e63946);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.import-form button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(253, 126, 20, 0.3);
-}
-
-.import-form button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.import-help {
-  background: rgba(102, 126, 234, 0.1);
-  padding: 15px;
-  border-radius: 10px;
-  border-right: 4px solid #667eea;
-}
-
-.import-help p {
-  margin: 0 0 10px 0;
-  font-weight: 600;
-  color: #333;
-}
-
-.import-help ul {
-  margin: 0;
-  padding-right: 20px;
-}
-
-.import-help li {
-  margin-bottom: 5px;
-  color: #555;
-}
-
 .notification-info {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 20px;
@@ -349,6 +240,54 @@ main {
   padding: 8px 0;
   color: #333;
   font-weight: 500;
+}
+
+.footer-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.copyright, .contact {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.copyright h3, .contact h3 {
+  margin-top: 0;
+  color: #667eea;
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+}
+
+.copyright p, .contact p {
+  color: #555;
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+.email-link {
+  display: inline-block;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.email-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
 
 .welcome-message {
@@ -448,17 +387,14 @@ main {
     justify-content: center;
   }
   
-  .add-quote-form {
-    flex-direction: column;
-  }
-  
-  .import-form {
-    flex-direction: column;
-  }
-  
   .quote-card {
     font-size: 16px;
     padding: 20px;
+  }
+  
+  .footer-info {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 }
 
@@ -475,7 +411,7 @@ main {
     padding: 15px;
   }
   
-  .add-quote-section {
+  .copyright, .contact {
     padding: 20px;
   }
   

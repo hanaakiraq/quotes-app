@@ -183,29 +183,6 @@ class QuotesApp {
       this.exportFavorites();
     });
 
-    // استيراد ملف
-    document.getElementById('importBtn').addEventListener('click', () => {
-      this.toggleImportSection();
-    });
-
-    // إضافة مقولة جديدة
-    document.getElementById('addQuoteBtn').addEventListener('click', () => {
-      this.addNewQuote();
-    });
-
-    // استيراد الملفات
-    document.getElementById('selectFileBtn').addEventListener('click', () => {
-      document.getElementById('fileInput').click();
-    });
-
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      this.handleFileSelect(e.target.files[0]);
-    });
-
-    document.getElementById('importFileBtn').addEventListener('click', () => {
-      this.importFile();
-    });
-
     // Enter للبحث
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
@@ -367,126 +344,6 @@ class QuotesApp {
     this.showNotification(`تم تصدير ${this.favorites.length} مقولة مفضلة 📤`);
   }
 
-  toggleImportSection() {
-    const section = document.getElementById('importSection');
-    section.style.display = section.style.display === 'none' ? 'block' : 'none';
-  }
-
-  addNewQuote() {
-    const category = document.getElementById('newQuoteCategory').value;
-    const text = document.getElementById('newQuoteText').value.trim();
-
-    if (!text) {
-      this.showNotification('يرجى كتابة نص المقولة', 'error');
-      return;
-    }
-
-    if (!this.quotes[category]) {
-      this.quotes[category] = [];
-    }
-
-    if (this.quotes[category].includes(text)) {
-      this.showNotification('هذه المقولة موجودة بالفعل', 'error');
-      return;
-    }
-
-    this.quotes[category].push(text);
-    this.saveQuotesToStorage(category);
-    
-    document.getElementById('newQuoteText').value = '';
-    this.showNotification('تمت إضافة المقولة بنجاح ✅');
-    
-    if (this.currentCategory === category || this.currentCategory === 'all') {
-      this.displayQuotes();
-    }
-  }
-
-  handleFileSelect(file) {
-    if (!file) return;
-
-    const importBtn = document.getElementById('importFileBtn');
-    const selectBtn = document.getElementById('selectFileBtn');
-    
-    selectBtn.textContent = `تم اختيار: ${file.name}`;
-    importBtn.disabled = false;
-    
-    this.selectedFile = file;
-  }
-
-  async importFile() {
-    if (!this.selectedFile) return;
-
-    const category = document.getElementById('importCategory').value;
-    const fileType = this.selectedFile.name.split('.').pop().toLowerCase();
-
-    try {
-      const text = await this.selectedFile.text();
-      let newQuotes = [];
-
-      if (fileType === 'json') {
-        const parsed = JSON.parse(text);
-        newQuotes = Array.isArray(parsed) ? parsed : [];
-      } else if (fileType === 'txt') {
-        newQuotes = text.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0);
-      } else {
-        throw new Error('نوع ملف غير مدعوم');
-      }
-
-      if (!this.quotes[category]) {
-        this.quotes[category] = [];
-      }
-
-      const existingQuotes = this.quotes[category];
-      const uniqueQuotes = newQuotes.filter(quote => !existingQuotes.includes(quote));
-
-      if (uniqueQuotes.length === 0) {
-        this.showNotification('جميع المقولات موجودة بالفعل', 'error');
-        return;
-      }
-
-      this.quotes[category].push(...uniqueQuotes);
-      this.saveQuotesToStorage(category);
-
-      this.showNotification(`تم استيراد ${uniqueQuotes.length} مقولة جديدة ✅`);
-      
-      // إعادة تعيين النموذج
-      document.getElementById('selectFileBtn').textContent = 'اختر ملف 📄';
-      document.getElementById('importFileBtn').disabled = true;
-      this.selectedFile = null;
-      
-      if (this.currentCategory === category || this.currentCategory === 'all') {
-        this.displayQuotes();
-      }
-
-    } catch (error) {
-      this.showNotification('خطأ في قراءة الملف: ' + error.message, 'error');
-    }
-  }
-
-  saveQuotesToStorage(category) {
-    localStorage.setItem(`quotes_${category}`, JSON.stringify(this.quotes[category]));
-  }
-
-  loadQuotesFromStorage() {
-    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life', 'custom'];
-    
-    categories.forEach(category => {
-      const stored = localStorage.getItem(`quotes_${category}`);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            this.quotes[category] = [...(this.quotes[category] || []), ...parsed];
-          }
-        } catch (error) {
-          console.error(`خطأ في تحميل ${category} من التخزين المحلي:`, error);
-        }
-      }
-    });
-  }
-
   updateStats(count) {
     document.getElementById('quotesCount').textContent = `${count} مقولة`;
   }
@@ -504,11 +361,3 @@ class QuotesApp {
 
 // تشغيل التطبيق
 const app = new QuotesApp();
-
-// تحميل البيانات من التخزين المحلي بعد تحميل البيانات الأساسية
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    app.loadQuotesFromStorage();
-    app.displayQuotes();
-  }, 1000);
-});
