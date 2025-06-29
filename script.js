@@ -73,14 +73,7 @@ class QuotesApp {
     notificationBtn.innerHTML = this.notificationsEnabled ? 'إيقاف الإشعارات 🔕' : 'تفعيل الإشعارات 🔔';
     notificationBtn.addEventListener('click', () => this.toggleNotifications());
     
-    // إضافة زر تجربة الإشعار
-    const testNotificationBtn = document.createElement('button');
-    testNotificationBtn.id = 'testNotificationBtn';
-    testNotificationBtn.innerHTML = 'تجربة الإشعار 🧪';
-    testNotificationBtn.addEventListener('click', () => this.sendTestNotification());
-    
     actionButtons.appendChild(notificationBtn);
-    actionButtons.appendChild(testNotificationBtn);
   }
 
   async toggleNotifications() {
@@ -108,7 +101,7 @@ class QuotesApp {
         
         this.showNotification('تم تفعيل الإشعارات اليومية! ستصلك حكمة جديدة كل 24 ساعة 🌅');
         
-        // إرسال إشعار تجريبي
+        // إرسال إشعار فوري للتأكيد
         setTimeout(() => {
           this.sendDailyQuoteNotification();
         }, 2000);
@@ -162,16 +155,6 @@ class QuotesApp {
 
     // فحص كل ساعة للتأكد من عدم تفويت الموعد
     this.notificationInterval = setInterval(checkAndSendNotification, 60 * 60 * 1000); // كل ساعة
-  }
-
-  async sendTestNotification() {
-    if (Notification.permission !== 'granted') {
-      this.showNotification('يرجى تفعيل الإشعارات أولاً', 'error');
-      return;
-    }
-
-    this.sendDailyQuoteNotification();
-    this.showNotification('تم إرسال إشعار تجريبي! 🧪');
   }
 
   async sendDailyQuoteNotification() {

@@ -159,11 +159,18 @@ main {
 #notificationBtn {
   background: linear-gradient(45deg, #8e44ad, #9b59b6) !important;
   border-color: #8e44ad !important;
+  position: relative;
+  overflow: hidden;
 }
 
 #notificationBtn:hover {
   background: linear-gradient(45deg, #7d3c98, #8e44ad) !important;
   box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3) !important;
+}
+
+#notificationBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(142, 68, 173, 0.4) !important;
 }
 
 #quotesContainer {
