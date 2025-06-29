@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>مقولات وحكم</title>
+  <link rel="manifest" href="/assets/manifest-5ux8hRQq.json">
+  <meta name="theme-color" content="#007bff">
+  <link rel="icon" type="image/png" href="/assets/icon-192-Be6bdxcb.png">
+  <link rel="stylesheet" crossorigin href="/assets/index-6xqXJv2c.css">
+</head>
+<body>
+  <header>
+    <h1>📚 مقولات وحكم</h1>
+    <div class="controls">
+      <select id="categorySelect">
+        <option value="all">جميع الأبواب</option>
+        <option value="wisdom">الحكمة</option>
+        <option value="success">النجاح</option>
+        <option value="friendship">الصداقة</option>
+        <option value="love">الحب</option>
+        <option value="patience">الصبر</option>
+        <option value="knowledge">العلم</option>
+        <option value="motivation">التحفيز</option>
+        <option value="life">الحياة</option>
+        <option value="custom">غرر الحكم</option>
+      </select>
+      
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="ابحث في المقولات...">
+        <button id="searchBtn">🔍</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="stats">
+      <span id="quotesCount">0 مقولة</span>
+      <div class="action-buttons">
+        <button id="randomQuoteBtn">مقولة عشوائية 🎲</button>
+        <button id="favoriteBtn">المفضلة ⭐</button>
+        <button id="exportBtn">تصدير المفضلة 📤</button>
+        <!-- سيتم إضافة زر الإشعارات هنا تلقائياً -->
+      </div>
+    </div>
+
+    <div id="quotesContainer">
+      <p class="welcome-message">اختر باباً من القائمة أو ابحث في جميع المقولات</p>
+    </div>
+
+    <div class="notification-info">
+      <h3>🔔 الإشعارات اليومية</h3>
+      <p>فعّل الإشعارات لتحصل على حكمة جديدة كل يوم في الساعة 9 صباحاً!</p>
+      <ul>
+        <li>✅ حكمة يومية مختارة بعناية</li>
+        <li>✅ إشعار في الوقت المناسب</li>
+        <li>✅ يعمل حتى لو كان التطبيق مغلقاً</li>
+        <li>✅ يمكن إيقافه في أي وقت</li>
+      </ul>
+    </div>
+
+    <!-- قسم الحقوق والاتصال -->
+    <div class="footer-info">
+      <div class="copyright">
+        <h3>📜 الحقوق</h3>
+        <p><strong>غرر الحكم © 2025</strong></p>
+        <p>جميع الحقوق محفوظة</p>
+      </div>
+      
+      <div class="contact">
+        <h3>📧 اتصل بنا</h3>
+        <p>للاستفسارات والاقتراحات:</p>
+        <a href="mailto:newiraq25@gmail.com" class="email-link">
+          📩 newiraq25@gmail.com
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <div id="notification" class="notification hidden"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
