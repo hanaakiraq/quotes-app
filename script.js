@@ -2,6 +2,7 @@
 class QuotesApp {
   constructor() {
     this.quotes = {};
+    this.userQuotes = JSON.parse(localStorage.getItem('userQuotes')) || [];
     this.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
     this.currentCategory = 'all';
     this.currentQuotes = [];
@@ -30,6 +31,9 @@ class QuotesApp {
         this.quotes[category] = [];
       }
     }
+
+    // إضافة المقولات المحفوظة محلياً
+    this.quotes['user'] = this.userQuotes;
   }
 
   async initializeNotifications() {
@@ -168,6 +172,11 @@ class QuotesApp {
       this.searchQuotes(searchTerm);
     });
 
+    // إضافة مقولة
+    document.getElementById('addQuoteBtn').addEventListener('click', () => {
+      this.showAddQuoteModal();
+    });
+
     // مقولة عشوائية
     document.getElementById('randomQuoteBtn').addEventListener('click', () => {
       this.showRandomQuote();
@@ -189,6 +198,102 @@ class QuotesApp {
         this.searchQuotes(e.target.value);
       }
     });
+
+    // أحداث النموذج
+    this.setupModalEvents();
+  }
+
+  setupModalEvents() {
+    const modal = document.getElementById('addQuoteModal');
+    const closeBtn = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelAdd');
+    const form = document.getElementById('addQuoteForm');
+
+    // إغلاق النموذج
+    closeBtn.addEventListener('click', () => this.hideAddQuoteModal());
+    cancelBtn.addEventListener('click', () => this.hideAddQuoteModal());
+
+    // إغلاق النموذج عند النقر خارجه
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideAddQuoteModal();
+      }
+    });
+
+    // إرسال النموذج
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.addNewQuote();
+    });
+
+    // إغلاق النموذج بمفتاح Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        this.hideAddQuoteModal();
+      }
+    });
+  }
+
+  showAddQuoteModal() {
+    const modal = document.getElementById('addQuoteModal');
+    modal.classList.remove('hidden');
+    document.getElementById('quoteText').focus();
+  }
+
+  hideAddQuoteModal() {
+    const modal = document.getElementById('addQuoteModal');
+    modal.classList.add('hidden');
+    document.getElementById('addQuoteForm').reset();
+  }
+
+  addNewQuote() {
+    const quoteText = document.getElementById('quoteText').value.trim();
+    const category = document.getElementById('quoteCategory').value;
+    const author = document.getElementById('quoteAuthor').value.trim();
+
+    if (!quoteText || !category) {
+      this.showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
+      return;
+    }
+
+    // التحقق من عدم تكرار المقولة
+    const allQuotes = Object.values(this.quotes).flat();
+    const userQuoteTexts = this.userQuotes.map(q => q.text);
+    if (allQuotes.includes(quoteText) || userQuoteTexts.includes(quoteText)) {
+      this.showNotification('هذه المقولة موجودة بالفعل!', 'error');
+      return;
+    }
+
+    // إنشاء كائن المقولة
+    const newQuote = {
+      text: quoteText,
+      category: category,
+      author: author || null,
+      dateAdded: new Date().toISOString(),
+      id: Date.now().toString()
+    };
+
+    // إضافة المقولة للمجموعة المناسبة
+    if (!this.quotes[category]) {
+      this.quotes[category] = [];
+    }
+    this.quotes[category].push(quoteText);
+
+    // إضافة المقولة لمقولات المستخدم
+    this.userQuotes.push(newQuote);
+    this.quotes['user'] = this.userQuotes;
+
+    // حفظ في التخزين المحلي
+    localStorage.setItem('userQuotes', JSON.stringify(this.userQuotes));
+
+    // إخفاء النموذج وإظهار رسالة نجاح
+    this.hideAddQuoteModal();
+    this.showNotification('تم إضافة المقولة بنجاح! ✅');
+
+    // تحديث العرض إذا كانت الفئة الحالية تتضمن المقولة الجديدة
+    if (this.currentCategory === 'all' || this.currentCategory === category || this.currentCategory === 'user') {
+      this.displayQuotes();
+    }
   }
 
   displayQuotes() {
@@ -197,6 +302,10 @@ class QuotesApp {
 
     if (this.currentCategory === 'all') {
       quotesToShow = Object.values(this.quotes).flat();
+      // إضافة نصوص المقولات المخصصة
+      quotesToShow = quotesToShow.concat(this.userQuotes.map(q => q.text));
+    } else if (this.currentCategory === 'user') {
+      quotesToShow = this.userQuotes.map(q => q.text);
     } else {
       quotesToShow = this.quotes[this.currentCategory] || [];
     }
@@ -214,25 +323,65 @@ class QuotesApp {
       return;
     }
 
-    container.innerHTML = quotes.map((quote, index) => `
-      <div class="quote-card">
-        <div class="category-badge">${this.getCategoryName(this.findQuoteCategory(quote))}</div>
-        <div class="quote-text">${quote}</div>
-        <div class="quote-actions">
-          <button onclick="app.toggleFavorite('${quote.replace(/'/g, "\\'")}', this)" 
-                  class="${this.favorites.includes(quote) ? 'favorite' : ''}">
-            ${this.favorites.includes(quote) ? '⭐' : '☆'}
-          </button>
-          <button onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}')">📋</button>
-          <button onclick="app.shareQuote('${quote.replace(/'/g, "\\'")}')">📤</button>
+    container.innerHTML = quotes.map((quote, index) => {
+      const userQuote = this.userQuotes.find(q => q.text === quote);
+      const isUserQuote = !!userQuote;
+      
+      return `
+        <div class="quote-card ${isUserQuote ? 'user-quote' : ''}">
+          <div class="category-badge">${this.getCategoryName(this.findQuoteCategory(quote))}</div>
+          ${isUserQuote && userQuote.author ? `<div class="author-badge">✍️ ${userQuote.author}</div>` : ''}
+          <div class="quote-text">${quote}</div>
+          <div class="quote-actions">
+            <button onclick="app.toggleFavorite('${quote.replace(/'/g, "\\'")}', this)" 
+                    class="${this.favorites.includes(quote) ? 'favorite' : ''}">
+              ${this.favorites.includes(quote) ? '⭐' : '☆'}
+            </button>
+            <button onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}')">📋</button>
+            <button onclick="app.shareQuote('${quote.replace(/'/g, "\\'")}')">📤</button>
+            ${isUserQuote ? `<button onclick="app.deleteUserQuote('${userQuote.id}')" class="delete-btn" title="حذف المقولة">🗑️</button>` : ''}
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+  }
+
+  deleteUserQuote(quoteId) {
+    if (confirm('هل أنت متأكد من حذف هذه المقولة؟')) {
+      // العثور على المقولة وحذفها
+      const quoteIndex = this.userQuotes.findIndex(q => q.id === quoteId);
+      if (quoteIndex !== -1) {
+        const deletedQuote = this.userQuotes[quoteIndex];
+        this.userQuotes.splice(quoteIndex, 1);
+        
+        // تحديث التخزين المحلي
+        localStorage.setItem('userQuotes', JSON.stringify(this.userQuotes));
+        this.quotes['user'] = this.userQuotes;
+        
+        // حذف من المفضلة إذا كانت موجودة
+        const favIndex = this.favorites.indexOf(deletedQuote.text);
+        if (favIndex !== -1) {
+          this.favorites.splice(favIndex, 1);
+          localStorage.setItem('favorites', JSON.stringify(this.favorites));
+        }
+        
+        // تحديث العرض
+        this.displayQuotes();
+        this.showNotification('تم حذف المقولة بنجاح');
+      }
+    }
   }
 
   findQuoteCategory(quote) {
+    // البحث في المقولات المخصصة أولاً
+    const userQuote = this.userQuotes.find(q => q.text === quote);
+    if (userQuote) {
+      return userQuote.category;
+    }
+
+    // البحث في الفئات الأخرى
     for (const [category, quotes] of Object.entries(this.quotes)) {
-      if (quotes.includes(quote)) {
+      if (category !== 'user' && quotes.includes(quote)) {
         return category;
       }
     }
@@ -249,7 +398,8 @@ class QuotesApp {
       knowledge: 'العلم',
       motivation: 'التحفيز',
       life: 'الحياة',
-      custom: 'غرر الحكم'
+      custom: 'غرر الحكم',
+      user: 'مقولاتي'
     };
     return names[category] || 'غير محدد';
   }
@@ -261,7 +411,10 @@ class QuotesApp {
     }
 
     const allQuotes = Object.values(this.quotes).flat();
-    const filteredQuotes = allQuotes.filter(quote => 
+    const userQuoteTexts = this.userQuotes.map(q => q.text);
+    const allQuoteTexts = [...allQuotes, ...userQuoteTexts];
+    
+    const filteredQuotes = allQuoteTexts.filter(quote => 
       quote.includes(searchTerm.trim())
     );
 
@@ -271,9 +424,12 @@ class QuotesApp {
 
   showRandomQuote() {
     const allQuotes = Object.values(this.quotes).flat();
-    if (allQuotes.length === 0) return;
+    const userQuoteTexts = this.userQuotes.map(q => q.text);
+    const allQuoteTexts = [...allQuotes, ...userQuoteTexts];
+    
+    if (allQuoteTexts.length === 0) return;
 
-    const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
+    const randomQuote = allQuoteTexts[Math.floor(Math.random() * allQuoteTexts.length)];
     this.renderQuotes([randomQuote]);
     this.updateStats(1);
     this.showNotification('تم عرض مقولة عشوائية! 🎲');

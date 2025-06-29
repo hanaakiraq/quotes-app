@@ -24,6 +24,7 @@
         <option value="motivation">التحفيز</option>
         <option value="life">الحياة</option>
         <option value="custom">غرر الحكم</option>
+        <option value="user">مقولاتي</option>
       </select>
       
       <div class="search-container">
@@ -37,6 +38,7 @@
     <div class="stats">
       <span id="quotesCount">0 مقولة</span>
       <div class="action-buttons">
+        <button id="addQuoteBtn">إضافة مقولة ➕</button>
         <button id="randomQuoteBtn">مقولة عشوائية 🎲</button>
         <button id="favoriteBtn">المفضلة ⭐</button>
         <button id="exportBtn">تصدير المفضلة 📤</button>
@@ -46,6 +48,47 @@
 
     <div id="quotesContainer">
       <p class="welcome-message">اختر باباً من القائمة أو ابحث في جميع المقولات</p>
+    </div>
+
+    <!-- نموذج إضافة مقولة جديدة -->
+    <div id="addQuoteModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>➕ إضافة مقولة جديدة</h2>
+          <button id="closeModal" class="close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="addQuoteForm">
+            <div class="form-group">
+              <label for="quoteText">نص المقولة:</label>
+              <textarea id="quoteText" placeholder="اكتب المقولة هنا..." required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="quoteCategory">الفئة:</label>
+              <select id="quoteCategory" required>
+                <option value="">اختر الفئة</option>
+                <option value="wisdom">الحكمة</option>
+                <option value="success">النجاح</option>
+                <option value="friendship">الصداقة</option>
+                <option value="love">الحب</option>
+                <option value="patience">الصبر</option>
+                <option value="knowledge">العلم</option>
+                <option value="motivation">التحفيز</option>
+                <option value="life">الحياة</option>
+                <option value="custom">غرر الحكم</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="quoteAuthor">المؤلف (اختياري):</label>
+              <input type="text" id="quoteAuthor" placeholder="اسم المؤلف">
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="submit-btn">حفظ المقولة 💾</button>
+              <button type="button" id="cancelAdd" class="cancel-btn">إلغاء</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
 
     <div class="notification-info">
