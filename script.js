@@ -20,7 +20,11 @@ class QuotesApp {
   }
 
   async loadQuotes() {
-    const categories = ['wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life', 'custom'];
+    const categories = [
+      'wisdom', 'success', 'friendship', 'love', 'patience', 
+      'knowledge', 'motivation', 'life', 'custom', 'ethics', 
+      'family', 'hope', 'time', 'health', 'work', 'peace'
+    ];
     
     for (const category of categories) {
       try {
@@ -478,6 +482,13 @@ class QuotesApp {
       motivation: 'التحفيز',
       life: 'الحياة',
       custom: 'غرر الحكم',
+      ethics: 'الأخلاق',
+      family: 'الأسرة',
+      hope: 'الأمل',
+      time: 'الوقت',
+      health: 'الصحة',
+      work: 'العمل',
+      peace: 'السلام',
       user: 'مقولاتي'
     };
     return names[category] || 'غير محدد';

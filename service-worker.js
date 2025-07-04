@@ -1,5 +1,5 @@
 // Service Worker للإشعارات اليومية المحسن
-const CACHE_NAME = 'quotes-app-v2';
+const CACHE_NAME = 'quotes-app-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -14,7 +14,14 @@ const urlsToCache = [
   '/data/patience.json',
   '/data/knowledge.json',
   '/data/motivation.json',
-  '/data/life.json'
+  '/data/life.json',
+  '/data/ethics.json',
+  '/data/family.json',
+  '/data/hope.json',
+  '/data/time.json',
+  '/data/health.json',
+  '/data/work.json',
+  '/data/peace.json'
 ];
 
 // تثبيت Service Worker
@@ -98,7 +105,11 @@ async function sendDailyQuote() {
   try {
     // تحميل جميع المقولات
     const allQuotes = [];
-    const categories = ['custom', 'wisdom', 'success', 'friendship', 'love', 'patience', 'knowledge', 'motivation', 'life'];
+    const categories = [
+      'custom', 'wisdom', 'success', 'friendship', 'love', 'patience', 
+      'knowledge', 'motivation', 'life', 'ethics', 'family', 'hope', 
+      'time', 'health', 'work', 'peace'
+    ];
     
     for (const category of categories) {
       try {
