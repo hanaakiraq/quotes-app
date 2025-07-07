@@ -1,718 +1,433 @@
-// تطبيق أقوال وحكم
+// Arabic Quotes App - Main JavaScript File
+
+// تطبيق الأقوال والحكم العربية
 class QuotesApp {
-  constructor() {
-    this.quotes = {};
-    this.userQuotes = JSON.parse(localStorage.getItem('userQuotes')) || [];
-    this.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-    this.currentCategory = 'all';
-    this.currentQuotes = [];
-    this.notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-    this.lastNotificationTime = localStorage.getItem('lastNotificationTime') || 0;
-    this.notificationInterval = null;
-    this.init();
-  }
-
-  async init() {
-    await this.loadQuotes();
-    this.setupEventListeners();
-    this.displayQuotes();
-    await this.initializeNotifications();
-  }
-
-  async loadQuotes() {
-    const categories = [
-      'wisdom', 'success', 'friendship', 'love', 'patience', 
-      'knowledge', 'motivation', 'life', 'custom', 'ethics', 
-      'family', 'hope', 'time', 'health', 'work', 'peace'
-    ];
-    
-    for (const category of categories) {
-      try {
-        const response = await fetch(`data/${category}.json`);
-        if (response.ok) {
-          this.quotes[category] = await response.json();
-        }
-      } catch (error) {
-        console.error(`خطأ في تحميل ${category}:`, error);
-        this.quotes[category] = [];
-      }
-    }
-
-    // إضافة المقولات المحفوظة محلياً
-    this.quotes['user'] = this.userQuotes;
-  }
-
-  async initializeNotifications() {
-    // تسجيل Service Worker
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/service-worker.js');
-        console.log('Service Worker مسجل بنجاح:', registration);
+    constructor() {
+        this.quotes = {};
+        this.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        this.userQuotes = JSON.parse(localStorage.getItem('userQuotes')) || [];
+        this.currentCategory = 'all';
+        this.searchTerm = '';
+        this.notificationPermission = false;
         
-        // إضافة زر التحكم في الإشعارات
-        this.addNotificationControls();
-        
-        // بدء الإشعارات إذا كانت مفعلة
-        if (this.notificationsEnabled) {
-          await this.startNotificationScheduler();
-        }
-      } catch (error) {
-        console.warn('Service Worker غير مدعوم في هذه البيئة:', error.message);
-        // إضافة زر التحكم في الإشعارات حتى لو لم يكن Service Worker مدعوماً
-        this.addNotificationControls();
-      }
-    } else {
-      console.warn('Service Worker غير مدعوم في هذا المتصفح');
-      // إضافة زر التحكم في الإشعارات حتى لو لم يكن Service Worker مدعوماً
-      this.addNotificationControls();
-    }
-  }
-
-  addNotificationControls() {
-    const actionButtons = document.querySelector('.action-buttons');
-    
-    // إضافة زر تفعيل/إلغاء الإشعارات
-    const notificationBtn = document.createElement('button');
-    notificationBtn.id = 'notificationBtn';
-    notificationBtn.innerHTML = this.notificationsEnabled ? 'إيقاف الإشعارات 🔕' : 'تفعيل الإشعارات 🔔';
-    notificationBtn.addEventListener('click', () => this.toggleNotifications());
-    
-    actionButtons.appendChild(notificationBtn);
-  }
-
-  async toggleNotifications() {
-    if (this.notificationsEnabled) {
-      await this.disableNotifications();
-    } else {
-      await this.enableNotifications();
-    }
-  }
-
-  async enableNotifications() {
-    try {
-      // طلب إذن الإشعارات
-      const permission = await Notification.requestPermission();
-      
-      if (permission === 'granted') {
-        this.notificationsEnabled = true;
-        localStorage.setItem('notificationsEnabled', 'true');
-        
-        // بدء جدولة الإشعارات
-        await this.startNotificationScheduler();
-        
-        // تحديث النص
-        document.getElementById('notificationBtn').innerHTML = 'إيقاف الإشعارات 🔕';
-        
-        this.showNotification('تم تفعيل الإشعارات اليومية! ستصلك حكمة جديدة كل 24 ساعة 🌅');
-        
-        // إرسال إشعار فوري للتأكيد
-        setTimeout(() => {
-          this.sendDailyQuoteNotification();
-        }, 2000);
-      } else {
-        this.showNotification('يرجى السماح بالإشعارات لتفعيل هذه الميزة', 'error');
-      }
-    } catch (error) {
-      console.error('خطأ في تفعيل الإشعارات:', error);
-      this.showNotification('خطأ في تفعيل الإشعارات', 'error');
-    }
-  }
-
-  async disableNotifications() {
-    this.notificationsEnabled = false;
-    localStorage.setItem('notificationsEnabled', 'false');
-    
-    // إيقاف المؤقت
-    if (this.notificationInterval) {
-      clearInterval(this.notificationInterval);
-      this.notificationInterval = null;
-    }
-    
-    // تحديث النص
-    document.getElementById('notificationBtn').innerHTML = 'تفعيل الإشعارات 🔔';
-    
-    this.showNotification('تم إيقاف الإشعارات اليومية');
-  }
-
-  async startNotificationScheduler() {
-    // إيقاف المؤقت السابق إن وجد
-    if (this.notificationInterval) {
-      clearInterval(this.notificationInterval);
+        this.init();
     }
 
-    // التحقق من الوقت المناسب لإرسال الإشعار
-    const checkAndSendNotification = () => {
-      const now = Date.now();
-      const lastNotification = parseInt(this.lastNotificationTime);
-      const timeDifference = now - lastNotification;
-      const twentyFourHours = 24 * 60 * 60 * 1000; // 24 ساعة بالميلي ثانية
-
-      // إرسال إشعار إذا مر أكثر من 24 ساعة أو إذا كانت هذه المرة الأولى
-      if (timeDifference >= twentyFourHours || lastNotification === 0) {
-        this.sendDailyQuoteNotification();
-        localStorage.setItem('lastNotificationTime', now.toString());
-      }
-    };
-
-    // فحص فوري
-    checkAndSendNotification();
-
-    // فحص كل ساعة للتأكد من عدم تفويت الموعد
-    this.notificationInterval = setInterval(checkAndSendNotification, 60 * 60 * 1000); // كل ساعة
-  }
-
-  async sendDailyQuoteNotification() {
-    // جمع جميع المقولات
-    const allQuotes = [];
-    
-    // إضافة المقولات من جميع الفئات
-    Object.values(this.quotes).forEach(categoryQuotes => {
-      if (Array.isArray(categoryQuotes)) {
-        allQuotes.push(...categoryQuotes);
-      }
-    });
-
-    // إضافة المقولات المخصصة
-    this.userQuotes.forEach(userQuote => {
-      allQuotes.push(userQuote.text);
-    });
-
-    if (allQuotes.length === 0) {
-      console.warn('لا توجد مقولات لإرسالها');
-      return;
-    }
-
-    // اختيار مقولة عشوائية
-    const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
-    
-    try {
-      // محاولة استخدام Service Worker أولاً
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification('🌟 حكمة اليوم', {
-          body: randomQuote,
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
-          tag: 'daily-quote',
-          requireInteraction: false,
-          silent: false,
-          vibrate: [200, 100, 200],
-          data: {
-            quote: randomQuote,
-            timestamp: Date.now()
-          },
-          actions: [
-            {
-              action: 'open',
-              title: 'فتح التطبيق',
-              icon: '/icon-192.png'
-            }
-          ]
-        });
-      } else {
-        // استخدام الإشعار العادي كبديل
-        const notification = new Notification('🌟 حكمة اليوم', {
-          body: randomQuote,
-          icon: '/icon-192.png',
-          tag: 'daily-quote',
-          requireInteraction: false,
-          silent: false
-        });
-
-        // إغلاق الإشعار تلقائياً بعد 10 ثوانٍ
-        setTimeout(() => {
-          notification.close();
-        }, 10000);
-
-        // التعامل مع النقر على الإشعار
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-        };
-      }
-
-      console.log('تم إرسال إشعار يومي:', randomQuote);
-    } catch (error) {
-      console.error('خطأ في إرسال الإشعار:', error);
-    }
-  }
-
-  setupEventListeners() {
-    // اختيار الفئة
-    document.getElementById('categorySelect').addEventListener('change', (e) => {
-      this.currentCategory = e.target.value;
-      this.displayQuotes();
-    });
-
-    // البحث
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      this.searchQuotes(e.target.value);
-    });
-
-    document.getElementById('searchBtn').addEventListener('click', () => {
-      const searchTerm = document.getElementById('searchInput').value;
-      this.searchQuotes(searchTerm);
-    });
-
-    // إضافة مقولة
-    document.getElementById('addQuoteBtn').addEventListener('click', () => {
-      this.showAddQuoteModal();
-    });
-
-    // مقولة عشوائية
-    document.getElementById('randomQuoteBtn').addEventListener('click', () => {
-      this.showRandomQuote();
-    });
-
-    // المفضلة
-    document.getElementById('favoriteBtn').addEventListener('click', () => {
-      this.showFavorites();
-    });
-
-    // تصدير المفضلة
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      this.exportFavorites();
-    });
-
-    // Enter للبحث
-    document.getElementById('searchInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.searchQuotes(e.target.value);
-      }
-    });
-
-    // أحداث النموذج
-    this.setupModalEvents();
-  }
-
-  setupModalEvents() {
-    const modal = document.getElementById('addQuoteModal');
-    const closeBtn = document.getElementById('closeModal');
-    const cancelBtn = document.getElementById('cancelAdd');
-    const form = document.getElementById('addQuoteForm');
-
-    // إغلاق النموذج
-    closeBtn.addEventListener('click', () => this.hideAddQuoteModal());
-    cancelBtn.addEventListener('click', () => this.hideAddQuoteModal());
-
-    // إغلاق النموذج عند النقر خارجه
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        this.hideAddQuoteModal();
-      }
-    });
-
-    // إرسال النموذج
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.addNewQuote();
-    });
-
-    // إغلاق النموذج بمفتاح Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-        this.hideAddQuoteModal();
-      }
-    });
-  }
-
-  showAddQuoteModal() {
-    const modal = document.getElementById('addQuoteModal');
-    modal.classList.remove('hidden');
-    document.getElementById('quoteText').focus();
-  }
-
-  hideAddQuoteModal() {
-    const modal = document.getElementById('addQuoteModal');
-    modal.classList.add('hidden');
-    document.getElementById('addQuoteForm').reset();
-  }
-
-  addNewQuote() {
-    const quoteText = document.getElementById('quoteText').value.trim();
-    const category = document.getElementById('quoteCategory').value;
-    const author = document.getElementById('quoteAuthor').value.trim();
-
-    if (!quoteText || !category) {
-      this.showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
-      return;
-    }
-
-    // التحقق من عدم تكرار المقولة
-    const allQuotes = Object.values(this.quotes).flat();
-    const userQuoteTexts = this.userQuotes.map(q => q.text);
-    if (allQuotes.includes(quoteText) || userQuoteTexts.includes(quoteText)) {
-      this.showNotification('هذه المقولة موجودة بالفعل!', 'error');
-      return;
-    }
-
-    // إنشاء كائن المقولة
-    const newQuote = {
-      text: quoteText,
-      category: category,
-      author: author || null,
-      dateAdded: new Date().toISOString(),
-      id: Date.now().toString()
-    };
-
-    // إضافة المقولة للمجموعة المناسبة
-    if (!this.quotes[category]) {
-      this.quotes[category] = [];
-    }
-    this.quotes[category].push(quoteText);
-
-    // إضافة المقولة لمقولات المستخدم
-    this.userQuotes.push(newQuote);
-    this.quotes['user'] = this.userQuotes;
-
-    // حفظ في التخزين المحلي
-    localStorage.setItem('userQuotes', JSON.stringify(this.userQuotes));
-
-    // إخفاء النموذج وإظهار رسالة نجاح
-    this.hideAddQuoteModal();
-    this.showNotification('تم إضافة المقولة بنجاح! ✅');
-
-    // تحديث العرض إذا كانت الفئة الحالية تتضمن المقولة الجديدة
-    if (this.currentCategory === 'all' || this.currentCategory === category || this.currentCategory === 'user') {
-      this.displayQuotes();
-    }
-  }
-
-  displayQuotes() {
-    const container = document.getElementById('quotesContainer');
-    let quotesToShow = [];
-
-    if (this.currentCategory === 'all') {
-      quotesToShow = Object.values(this.quotes).flat();
-      // إضافة نصوص المقولات المخصصة
-      quotesToShow = quotesToShow.concat(this.userQuotes.map(q => q.text));
-    } else if (this.currentCategory === 'user') {
-      quotesToShow = this.userQuotes.map(q => q.text);
-    } else {
-      quotesToShow = this.quotes[this.currentCategory] || [];
-    }
-
-    this.currentQuotes = quotesToShow;
-    this.renderQuotes(quotesToShow);
-    this.updateStats(quotesToShow.length);
-  }
-
-  renderQuotes(quotes) {
-    const container = document.getElementById('quotesContainer');
-    
-    if (quotes.length === 0) {
-      container.innerHTML = '<p class="welcome-message">لا توجد مقولات في هذه الفئة</p>';
-      return;
-    }
-
-    container.innerHTML = quotes.map((quote, index) => {
-      const userQuote = this.userQuotes.find(q => q.text === quote);
-      const isUserQuote = !!userQuote;
-      
-      return `
-        <div class="quote-card ${isUserQuote ? 'user-quote' : ''}">
-          <div class="category-badge">${this.getCategoryName(this.findQuoteCategory(quote))}</div>
-          ${isUserQuote && userQuote.author ? `<div class="author-badge">✍️ ${userQuote.author}</div>` : ''}
-          <div class="quote-text">${quote}</div>
-          <div class="quote-actions">
-            <button onclick="app.toggleFavorite('${quote.replace(/'/g, "\\'")}', this)" 
-                    class="${this.favorites.includes(quote) ? 'favorite' : ''}"
-                    title="إضافة للمفضلة">
-              ${this.favorites.includes(quote) ? '⭐' : '☆'}
-            </button>
-            <button onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}')">📋</button>
-            <button onclick="app.showShareModal('${quote.replace(/'/g, "\\'")}')">📤</button>
-            ${isUserQuote ? `<button onclick="app.deleteUserQuote('${userQuote.id}')" class="delete-btn" title="حذف المقولة">🗑️</button>` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  deleteUserQuote(quoteId) {
-    if (confirm('هل أنت متأكد من حذف هذه المقولة؟')) {
-      // العثور على المقولة وحذفها
-      const quoteIndex = this.userQuotes.findIndex(q => q.id === quoteId);
-      if (quoteIndex !== -1) {
-        const deletedQuote = this.userQuotes[quoteIndex];
-        this.userQuotes.splice(quoteIndex, 1);
-        
-        // تحديث التخزين المحلي
-        localStorage.setItem('userQuotes', JSON.stringify(this.userQuotes));
-        this.quotes['user'] = this.userQuotes;
-        
-        // حذف من المفضلة إذا كانت موجودة
-        const favIndex = this.favorites.indexOf(deletedQuote.text);
-        if (favIndex !== -1) {
-          this.favorites.splice(favIndex, 1);
-          localStorage.setItem('favorites', JSON.stringify(this.favorites));
-        }
-        
-        // تحديث العرض
+    async init() {
+        await this.loadQuotes();
+        this.setupEventListeners();
+        this.setupNotifications();
         this.displayQuotes();
-        this.showNotification('تم حذف المقولة بنجاح');
-      }
-    }
-  }
-
-  findQuoteCategory(quote) {
-    // البحث في المقولات المخصصة أولاً
-    const userQuote = this.userQuotes.find(q => q.text === quote);
-    if (userQuote) {
-      return userQuote.category;
     }
 
-    // البحث في الفئات الأخرى
-    for (const [category, quotes] of Object.entries(this.quotes)) {
-      if (category !== 'user' && quotes.includes(quote)) {
-        return category;
-      }
-    }
-    return 'custom';
-  }
+    async loadQuotes() {
+        const categories = [
+            'wisdom', 'success', 'friendship', 'love', 'patience', 
+            'knowledge', 'motivation', 'life', 'custom', 'ethics',
+            'family', 'hope', 'time', 'health', 'work', 'peace'
+        ];
 
-  getCategoryName(category) {
-    const names = {
-      wisdom: 'الحكمة',
-      success: 'النجاح',
-      friendship: 'الصداقة',
-      love: 'الحب',
-      patience: 'الصبر',
-      knowledge: 'العلم',
-      motivation: 'التحفيز',
-      life: 'الحياة',
-      custom: 'غرر الحكم',
-      ethics: 'الأخلاق',
-      family: 'الأسرة',
-      hope: 'الأمل',
-      time: 'الوقت',
-      health: 'الصحة',
-      work: 'العمل',
-      peace: 'السلام',
-      user: 'مقولاتي'
-    };
-    return names[category] || 'غير محدد';
-  }
-
-  searchQuotes(searchTerm) {
-    if (!searchTerm.trim()) {
-      this.displayQuotes();
-      return;
+        for (const category of categories) {
+            try {
+                const response = await fetch(`data/${category}.json`);
+                if (response.ok) {
+                    this.quotes[category] = await response.json();
+                }
+            } catch (error) {
+                console.warn(`Could not load ${category} quotes:`, error);
+                this.quotes[category] = [];
+            }
+        }
     }
 
-    const allQuotes = Object.values(this.quotes).flat();
-    const userQuoteTexts = this.userQuotes.map(q => q.text);
-    const allQuoteTexts = [...allQuotes, ...userQuoteTexts];
-    
-    const filteredQuotes = allQuoteTexts.filter(quote => 
-      quote.includes(searchTerm.trim())
-    );
+    setupEventListeners() {
+        // Category selection
+        document.getElementById('categorySelect').addEventListener('change', (e) => {
+            this.currentCategory = e.target.value;
+            this.displayQuotes();
+        });
 
-    this.renderQuotes(filteredQuotes);
-    this.updateStats(filteredQuotes.length);
-  }
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            this.searchTerm = e.target.value.trim();
+            this.displayQuotes();
+        });
 
-  showRandomQuote() {
-    const allQuotes = Object.values(this.quotes).flat();
-    const userQuoteTexts = this.userQuotes.map(q => q.text);
-    const allQuoteTexts = [...allQuotes, ...userQuoteTexts];
-    
-    if (allQuoteTexts.length === 0) return;
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            this.displayQuotes();
+        });
 
-    const randomQuote = allQuoteTexts[Math.floor(Math.random() * allQuoteTexts.length)];
-    this.renderQuotes([randomQuote]);
-    this.updateStats(1);
-    this.showNotification('تم عرض مقولة عشوائية! 🎲');
-  }
+        // Action buttons
+        document.getElementById('addQuoteBtn')?.addEventListener('click', () => {
+            this.showAddQuoteModal();
+        });
 
-  showFavorites() {
-    if (this.favorites.length === 0) {
-      this.showNotification('لا توجد مقولات مفضلة بعد', 'error');
-      return;
+        document.getElementById('randomQuoteBtn').addEventListener('click', () => {
+            this.showRandomQuote();
+        });
+
+        document.getElementById('favoriteBtn').addEventListener('click', () => {
+            this.showFavorites();
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            this.exportFavorites();
+        });
+
+        // Modal functionality
+        document.getElementById('closeModal')?.addEventListener('click', () => {
+            this.hideAddQuoteModal();
+        });
+
+        document.getElementById('cancelAdd')?.addEventListener('click', () => {
+            this.hideAddQuoteModal();
+        });
+
+        document.getElementById('addQuoteForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addUserQuote();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('addQuoteModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'addQuoteModal') {
+                this.hideAddQuoteModal();
+            }
+        });
     }
 
-    this.renderQuotes(this.favorites);
-    this.updateStats(this.favorites.length);
-    this.showNotification(`تم عرض ${this.favorites.length} مقولة مفضلة ⭐`);
-  }
-
-  toggleFavorite(quote, button) {
-    const index = this.favorites.indexOf(quote);
-    
-    if (index === -1) {
-      this.favorites.push(quote);
-      button.innerHTML = '⭐';
-      button.classList.add('favorite');
-      this.showNotification('تمت إضافة المقولة للمفضلة ⭐');
-    } else {
-      this.favorites.splice(index, 1);
-      button.innerHTML = '☆';
-      button.classList.remove('favorite');
-      this.showNotification('تم حذف المقولة من المفضلة');
+    setupNotifications() {
+        if ('Notification' in window && 'serviceWorker' in navigator) {
+            const notificationBtn = document.createElement('button');
+            notificationBtn.id = 'notificationBtn';
+            notificationBtn.innerHTML = 'تفعيل الإشعارات 🔔';
+            notificationBtn.addEventListener('click', () => this.requestNotificationPermission());
+            
+            document.querySelector('.action-buttons').appendChild(notificationBtn);
+            
+            this.updateNotificationButton();
+        }
     }
 
-    localStorage.setItem('favorites', JSON.stringify(this.favorites));
-  }
+    async requestNotificationPermission() {
+        if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            this.notificationPermission = permission === 'granted';
+        } else if (Notification.permission === 'granted') {
+            this.notificationPermission = !this.notificationPermission;
+        }
+        
+        this.updateNotificationButton();
+        this.scheduleNotifications();
+    }
 
-  copyQuote(quote) {
-    navigator.clipboard.writeText(quote).then(() => {
-      this.showNotification('تم نسخ المقولة 📋');
-    }).catch(() => {
-      this.showNotification('فشل في نسخ المقولة', 'error');
-    });
-  }
+    updateNotificationButton() {
+        const btn = document.getElementById('notificationBtn');
+        if (btn) {
+            if (Notification.permission === 'granted' && this.notificationPermission) {
+                btn.innerHTML = 'إيقاف الإشعارات 🔕';
+                btn.classList.add('active');
+            } else {
+                btn.innerHTML = 'تفعيل الإشعارات 🔔';
+                btn.classList.remove('active');
+            }
+        }
+    }
 
-  showShareModal(quote) {
-    // إنشاء نافذة المشاركة
-    const modal = document.createElement('div');
-    modal.className = 'modal share-modal';
-    modal.innerHTML = `
-      <div class="modal-content share-modal-content">
-        <div class="modal-header">
-          <h2>📤 مشاركة الحكمة</h2>
-          <button class="close-btn" onclick="this.closest('.modal').remove()">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="quote-preview">
-            <p>"${quote}"</p>
-          </div>
-          <div class="share-options">
-            <h3>اختر طريقة المشاركة:</h3>
-            <div class="share-buttons">
-              <button class="share-btn whatsapp" onclick="app.shareToWhatsApp('${quote.replace(/'/g, "\\'")}')">
-                <span class="share-icon">📱</span>
-                واتساب
-              </button>
-              <button class="share-btn telegram" onclick="app.shareToTelegram('${quote.replace(/'/g, "\\'")}')">
-                <span class="share-icon">✈️</span>
-                تيليجرام
-              </button>
-              <button class="share-btn twitter" onclick="app.shareToTwitter('${quote.replace(/'/g, "\\'")}')">
-                <span class="share-icon">🐦</span>
-                تويتر
-              </button>
-              <button class="share-btn facebook" onclick="app.shareToFacebook('${quote.replace(/'/g, "\\'")}')">
-                <span class="share-icon">📘</span>
-                فيسبوك
-              </button>
-              <button class="share-btn copy" onclick="app.copyQuote('${quote.replace(/'/g, "\\'")}'); this.closest('.modal').remove();">
-                <span class="share-icon">📋</span>
-                نسخ النص
-              </button>
-              <button class="share-btn native" onclick="app.shareNative('${quote.replace(/'/g, "\\'")}')">
-                <span class="share-icon">📤</span>
-                مشاركة أخرى
-              </button>
+    scheduleNotifications() {
+        if (this.notificationPermission && Notification.permission === 'granted') {
+            // Schedule daily notification at 9 AM
+            const now = new Date();
+            const scheduledTime = new Date();
+            scheduledTime.setHours(9, 0, 0, 0);
+            
+            if (scheduledTime <= now) {
+                scheduledTime.setDate(scheduledTime.getDate() + 1);
+            }
+            
+            const timeUntilNotification = scheduledTime.getTime() - now.getTime();
+            
+            setTimeout(() => {
+                this.sendDailyNotification();
+                // Schedule for next day
+                setInterval(() => this.sendDailyNotification(), 24 * 60 * 60 * 1000);
+            }, timeUntilNotification);
+        }
+    }
+
+    sendDailyNotification() {
+        const randomQuote = this.getRandomQuote();
+        if (randomQuote) {
+            new Notification('حكمة اليوم 📚', {
+                body: randomQuote.text,
+                icon: 'icon-192.png',
+                badge: 'icon-192.png'
+            });
+        }
+    }
+
+    displayQuotes() {
+        const container = document.getElementById('quotesContainer');
+        const quotesCount = document.getElementById('quotesCount');
+        
+        let quotesToShow = [];
+
+        if (this.currentCategory === 'all') {
+            // Show all quotes from all categories
+            Object.values(this.quotes).forEach(categoryQuotes => {
+                quotesToShow = quotesToShow.concat(categoryQuotes);
+            });
+            quotesToShow = quotesToShow.concat(this.userQuotes);
+        } else if (this.currentCategory === 'user') {
+            quotesToShow = this.userQuotes;
+        } else if (this.quotes[this.currentCategory]) {
+            quotesToShow = this.quotes[this.currentCategory];
+        }
+
+        // Apply search filter
+        if (this.searchTerm) {
+            quotesToShow = quotesToShow.filter(quote => 
+                quote.text.includes(this.searchTerm) || 
+                (quote.author && quote.author.includes(this.searchTerm))
+            );
+        }
+
+        // Update count
+        quotesCount.textContent = `${quotesToShow.length} مقولة`;
+
+        // Display quotes
+        if (quotesToShow.length === 0) {
+            container.innerHTML = '<p class="welcome-message">لا توجد مقولات تطابق البحث</p>';
+            return;
+        }
+
+        container.innerHTML = quotesToShow.map(quote => this.createQuoteHTML(quote)).join('');
+        
+        // Add event listeners for favorite buttons
+        container.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quoteText = e.target.dataset.quote;
+                this.toggleFavorite(quoteText);
+                e.target.classList.toggle('favorited');
+                e.target.textContent = e.target.classList.contains('favorited') ? '⭐' : '☆';
+            });
+        });
+
+        // Add event listeners for delete buttons (user quotes only)
+        container.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quoteText = e.target.dataset.quote;
+                this.deleteUserQuote(quoteText);
+            });
+        });
+    }
+
+    createQuoteHTML(quote) {
+        const isFavorited = this.favorites.some(fav => fav.text === quote.text);
+        const isUserQuote = this.userQuotes.some(userQuote => userQuote.text === quote.text);
+        
+        return `
+            <div class="quote-card">
+                <p class="quote-text">"${quote.text}"</p>
+                ${quote.author ? `<p class="quote-author">- ${quote.author}</p>` : ''}
+                <div class="quote-actions">
+                    <button class="favorite-btn ${isFavorited ? 'favorited' : ''}" 
+                            data-quote="${quote.text}">
+                        ${isFavorited ? '⭐' : '☆'}
+                    </button>
+                    ${isUserQuote ? `<button class="delete-btn" data-quote="${quote.text}">🗑️</button>` : ''}
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // إضافة النافذة للصفحة
-    document.body.appendChild(modal);
-
-    // إغلاق النافذة عند النقر خارجها
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.remove();
-      }
-    });
-
-    // إغلاق النافذة بمفتاح Escape
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        modal.remove();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-  }
-
-  shareToWhatsApp(quote) {
-    const text = encodeURIComponent(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
-    const url = `https://wa.me/?text=${text}`;
-    window.open(url, '_blank');
-    this.closeShareModal();
-  }
-
-  shareToTelegram(quote) {
-    const text = encodeURIComponent(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
-    const url = `https://t.me/share/url?text=${text}`;
-    window.open(url, '_blank');
-    this.closeShareModal();
-  }
-
-  shareToTwitter(quote) {
-    const text = encodeURIComponent(`"${quote}"\n\n📚 #مقولات_وحكم #حكمة`);
-    const url = `https://twitter.com/intent/tweet?text=${text}`;
-    window.open(url, '_blank');
-    this.closeShareModal();
-  }
-
-  shareToFacebook(quote) {
-    const text = encodeURIComponent(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
-    const url = `https://www.facebook.com/sharer/sharer.php?quote=${text}`;
-    window.open(url, '_blank');
-    this.closeShareModal();
-  }
-
-  shareNative(quote) {
-    if (navigator.share) {
-      navigator.share({
-        title: '📚 حكمة من تطبيق مقولات وحكم',
-        text: `"${quote}"\n\n📚 من تطبيق مقولات وحكم`
-      }).then(() => {
-        this.closeShareModal();
-        this.showNotification('تم مشاركة المقولة بنجاح! 📤');
-      }).catch((error) => {
-        console.log('خطأ في المشاركة:', error);
-      });
-    } else {
-      // نسخ النص كبديل
-      this.copyQuote(`"${quote}"\n\n📚 من تطبيق مقولات وحكم`);
-      this.closeShareModal();
-    }
-  }
-
-  closeShareModal() {
-    const modal = document.querySelector('.share-modal');
-    if (modal) {
-      modal.remove();
-    }
-  }
-
-  exportFavorites() {
-    if (this.favorites.length === 0) {
-      this.showNotification('لا توجد مقولات مفضلة للتصدير', 'error');
-      return;
+        `;
     }
 
-    const dataStr = JSON.stringify(this.favorites, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = 'مقولاتي_المفضلة.json';
-    link.click();
-    
-    this.showNotification(`تم تصدير ${this.favorites.length} مقولة مفضلة 📤`);
-  }
+    toggleFavorite(quoteText) {
+        const existingIndex = this.favorites.findIndex(fav => fav.text === quoteText);
+        
+        if (existingIndex > -1) {
+            this.favorites.splice(existingIndex, 1);
+        } else {
+            // Find the full quote object
+            let fullQuote = null;
+            
+            // Search in all categories
+            Object.values(this.quotes).forEach(categoryQuotes => {
+                const found = categoryQuotes.find(q => q.text === quoteText);
+                if (found) fullQuote = found;
+            });
+            
+            // Search in user quotes
+            if (!fullQuote) {
+                fullQuote = this.userQuotes.find(q => q.text === quoteText);
+            }
+            
+            if (fullQuote) {
+                this.favorites.push(fullQuote);
+            }
+        }
+        
+        localStorage.setItem('favorites', JSON.stringify(this.favorites));
+        this.showNotification(existingIndex > -1 ? 'تم إزالة المقولة من المفضلة' : 'تم إضافة المقولة للمفضلة');
+    }
 
-  updateStats(count) {
-    document.getElementById('quotesCount').textContent = `${count} مقولة`;
-  }
+    showFavorites() {
+        this.currentCategory = 'favorites';
+        document.getElementById('categorySelect').value = 'all';
+        
+        const container = document.getElementById('quotesContainer');
+        const quotesCount = document.getElementById('quotesCount');
+        
+        quotesCount.textContent = `${this.favorites.length} مقولة مفضلة`;
+        
+        if (this.favorites.length === 0) {
+            container.innerHTML = '<p class="welcome-message">لا توجد مقولات مفضلة بعد</p>';
+            return;
+        }
+        
+        container.innerHTML = this.favorites.map(quote => this.createQuoteHTML(quote)).join('');
+        
+        // Add event listeners
+        container.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quoteText = e.target.dataset.quote;
+                this.toggleFavorite(quoteText);
+                this.showFavorites(); // Refresh the favorites view
+            });
+        });
+    }
 
-  showNotification(message, type = 'success') {
-    const notification = document.getElementById('notification');
-    notification.textContent = message;
-    notification.className = `notification ${type}`;
-    
-    setTimeout(() => {
-      notification.classList.add('hidden');
-    }, 3000);
-  }
+    showRandomQuote() {
+        let allQuotes = [];
+        Object.values(this.quotes).forEach(categoryQuotes => {
+            allQuotes = allQuotes.concat(categoryQuotes);
+        });
+        allQuotes = allQuotes.concat(this.userQuotes);
+        
+        if (allQuotes.length === 0) return;
+        
+        const randomQuote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
+        
+        const container = document.getElementById('quotesContainer');
+        container.innerHTML = `
+            <div class="random-quote-container">
+                <h2>🎲 مقولة عشوائية</h2>
+                ${this.createQuoteHTML(randomQuote)}
+                <button id="anotherRandomBtn" class="action-btn">مقولة أخرى 🔄</button>
+            </div>
+        `;
+        
+        document.getElementById('anotherRandomBtn').addEventListener('click', () => {
+            this.showRandomQuote();
+        });
+        
+        // Add favorite functionality
+        container.querySelector('.favorite-btn').addEventListener('click', (e) => {
+            const quoteText = e.target.dataset.quote;
+            this.toggleFavorite(quoteText);
+            e.target.classList.toggle('favorited');
+            e.target.textContent = e.target.classList.contains('favorited') ? '⭐' : '☆';
+        });
+    }
+
+    getRandomQuote() {
+        let allQuotes = [];
+        Object.values(this.quotes).forEach(categoryQuotes => {
+            allQuotes = allQuotes.concat(categoryQuotes);
+        });
+        allQuotes = allQuotes.concat(this.userQuotes);
+        
+        if (allQuotes.length === 0) return null;
+        return allQuotes[Math.floor(Math.random() * allQuotes.length)];
+    }
+
+    exportFavorites() {
+        if (this.favorites.length === 0) {
+            this.showNotification('لا توجد مقولات مفضلة للتصدير');
+            return;
+        }
+        
+        const exportData = {
+            favorites: this.favorites,
+            exportDate: new Date().toISOString(),
+            totalCount: this.favorites.length
+        };
+        
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `مقولاتي_المفضلة_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        
+        this.showNotification('تم تصدير المقولات المفضلة بنجاح');
+    }
+
+    showAddQuoteModal() {
+        document.getElementById('addQuoteModal').classList.remove('hidden');
+    }
+
+    hideAddQuoteModal() {
+        document.getElementById('addQuoteModal').classList.add('hidden');
+        document.getElementById('addQuoteForm').reset();
+    }
+
+    addUserQuote() {
+        const text = document.getElementById('quoteText').value.trim();
+        const category = document.getElementById('quoteCategory').value;
+        const author = document.getElementById('quoteAuthor').value.trim();
+        
+        if (!text || !category) {
+            this.showNotification('يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+        
+        const newQuote = {
+            text: text,
+            category: category,
+            author: author || null,
+            userAdded: true,
+            dateAdded: new Date().toISOString()
+        };
+        
+        this.userQuotes.push(newQuote);
+        localStorage.setItem('userQuotes', JSON.stringify(this.userQuotes));
+        
+        this.hideAddQuoteModal();
+        this.showNotification('تم إضافة المقولة بنجاح');
+        
+        // If currently viewing user quotes, refresh the display
+        if (this.currentCategory === 'user') {
+            this.displayQuotes();
+        }
+    }
+
+    deleteUserQuote(quoteText) {
+        if (confirm('هل أنت متأكد من حذف هذه المقولة؟')) {
+            this.userQuotes = this.userQuotes.filter(quote => quote.text !== quoteText);
+            localStorage.setItem('userQuotes', JSON.stringify(this.userQuotes));
+            
+            // Also remove from favorites if it exists there
+            this.favorites = this.favorites.filter(quote => quote.text !== quoteText);
+            localStorage.setItem('favorites', JSON.stringify(this.favorites));
+            
+            this.displayQuotes();
+            this.showNotification('تم حذف المقولة');
+        }
+    }
+
+    showNotification(message) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.classList.remove('hidden');
+        
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 3000);
+    }
 }
 
-// تشغيل التطبيق
-const app = new QuotesApp();
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new QuotesApp();
+});
